@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mference: will it run on your Mac?</title>
+<meta name="description" content="Pick a Mac and see which of Mference's ten model families run on it, from how much memory, at what measured speed.">
+<link rel="icon" href="assets/mference-app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F0E6;
+  --paper-2:#EAE4D5;
+  --ink:#14130F;
+  --ink-2:#55524A;
+  --signal:#2B3FF0;
+  --warm:#FF7A1A;
+  --line:rgba(20,19,15,.16);
+  --focus:#14130F;
+  --font:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --cols:36px 250px minmax(0,1fr) 150px 150px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:6px}
+.on-signal{--focus:#F4F0E6}
+.wrap{width:100%;max-width:1320px;margin:0 auto;padding:0 20px}
+.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:10px;z-index:50}
+.skip:focus{top:12px}
+
+/* wordmark: one treatment, nav and footer */
+.mark{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-stretch:112%;font-weight:800;font-size:20px;letter-spacing:-.02em;line-height:1}
+.mark img{width:32px;height:32px;border-radius:9px;box-shadow:0 0 0 1.5px currentColor}
+
+/* primary action */
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--warm);color:var(--ink);text-decoration:none;font-weight:800;font-stretch:108%;font-size:18px;padding:14px 24px;border:3px solid var(--ink);border-radius:14px;box-shadow:0 5px 0 var(--ink);transition:transform .12s,box-shadow .12s;white-space:nowrap}
+.cta:hover{transform:translateY(-1px);box-shadow:0 6px 0 var(--ink)}
+.cta:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+
+/* hero */
+.hero{background:var(--signal);color:var(--paper);position:relative;padding-bottom:36px}
+nav{display:flex;align-items:center;padding:16px 0 0}
+h1{margin:22px 0 0;font-weight:850;font-stretch:118%;font-size:clamp(36px,5.8vw,84px);line-height:.95;letter-spacing:-.045em;max-width:19ch;text-wrap:balance}
+.hero-row{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:36px;align-items:start;margin-top:28px}
+.idea{font-size:clamp(17px,1.5vw,21px);line-height:1.4;max-width:30ch;margin:0 0 26px;font-weight:500}
+.idea b{font-weight:800}
+.picker-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;opacity:.92}
+
+/* segmented control */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0;padding:0}
+.seg button{font:inherit;cursor:pointer;text-align:left;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:10px 14px;box-shadow:0 6px 0 var(--ink);transition:transform .12s,box-shadow .12s,background .15s,color .15s;display:flex;flex-direction:column;gap:2px;min-height:76px}
+.seg button .n{font-weight:850;font-stretch:112%;font-size:clamp(24px,2.7vw,38px);letter-spacing:-.035em;line-height:1}
+.seg button .m{font-size:13px;font-weight:600;color:var(--ink-2);line-height:1.2}
+.seg button:hover{transform:translateY(-1px);box-shadow:0 7px 0 var(--ink)}
+.seg button:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper);transform:translateY(4px);box-shadow:0 2px 0 var(--warm), 0 2px 0 3px var(--ink)}
+.seg button[aria-checked="true"] .m{color:#D9D3C2}
+.seg.compact{gap:6px}
+.seg.compact button{min-height:0;padding:6px 10px;border-width:2px;border-radius:11px;box-shadow:0 3px 0 var(--ink);flex-direction:row;align-items:baseline;gap:6px}
+.seg.compact button .n{font-size:15px;letter-spacing:-.01em}
+.seg.compact button .m{display:none}
+.seg.compact button[aria-checked="true"]{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.seg.compact button:hover{transform:none;box-shadow:0 3px 0 var(--ink)}
+.seg.compact button[aria-checked="true"]:hover{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+
+/* live answer */
+.tally{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 30px;align-items:center;margin-top:26px;padding-top:20px;border-top:3px solid var(--paper)}
+.tally .big{font-weight:850;font-stretch:118%;font-size:clamp(48px,6.4vw,92px);line-height:.85;letter-spacing:-.05em;white-space:nowrap}
+.tally .big small{display:block;font-size:clamp(15px,1.3vw,18px);font-stretch:100%;font-weight:700;letter-spacing:-.005em;line-height:1.25;margin-top:10px}
+.strip{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:0;padding:0;list-style:none}
+.strip li{height:30px;border:3px solid var(--paper);border-radius:9px;transition:background .3s,border-color .3s}
+.strip li[data-s="measured"]{background:var(--paper)}
+.strip li[data-s="fits"]{background:transparent}
+.strip li[data-s="need"]{border-color:var(--ink);background:repeating-linear-gradient(135deg,var(--ink) 0 4px,transparent 4px 8px)}
+.counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin:12px 0 0;padding:0;list-style:none;font-size:13.5px;font-weight:600}
+.counts li{display:flex;align-items:center;gap:7px}
+.counts i{display:inline-block;width:18px;height:14px;border:2.5px solid var(--paper);border-radius:5px}
+.counts i.m{background:var(--paper)}
+.counts i.n{border-color:var(--ink);background:repeating-linear-gradient(135deg,var(--ink) 0 3px,transparent 3px 6px)}
+.counts b{font-weight:850;font-size:16px}
+
+/* table */
+.board{padding:0 0 40px;position:relative}
+.axis-bar{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:3px solid var(--ink)}
+.axis-in{display:grid;grid-template-columns:var(--cols);gap:0 18px;align-items:end;padding:10px 0 0}
+.axis-in .sel{grid-column:1/4;display:flex;align-items:center;gap:14px;padding-bottom:10px}
+.axis-in .sel .lab{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.axis{grid-column:3;position:relative;height:46px}
+.axis .zone-l{position:absolute;left:0;top:0;bottom:0;background:rgba(43,63,240,.09);transition:width .55s cubic-bezier(.2,.8,.2,1);border-right:3px solid var(--ink)}
+.axis .zone-l span{position:absolute;right:8px;top:0;font-size:12px;line-height:15px;font-weight:800;white-space:nowrap;letter-spacing:.02em}
+.axis .tk{position:absolute;bottom:0;height:9px;border-left:1.5px solid var(--ink-2)}
+.axis .tk span{position:absolute;bottom:11px;left:4px;font-size:12px;line-height:15px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.hd{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding-bottom:6px;white-space:nowrap}
+.intro{margin:0;padding:14px 0 4px;font-size:14px;font-weight:600;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0;padding:6px 0 12px;list-style:none;font-size:13px;font-weight:600;color:var(--ink-2)}
+.legend li{display:flex;align-items:center;gap:8px}
+.legend .sw{display:inline-block;flex:none}
+.sw.bar{width:24px;height:12px;background:var(--signal);border-radius:3px}
+.sw.dot{width:13px;height:13px;border-radius:50%;background:var(--warm);border:2px solid var(--ink)}
+.sw.wall{width:3px;height:16px;background:var(--ink)}
+.sw.hatch{width:24px;height:12px;border-radius:3px;border:2px solid var(--ink);background:repeating-linear-gradient(135deg,var(--ink) 0 3px,transparent 3px 6px)}
+
+ol.rows{list-style:none;margin:0;padding:0;border-top:1.5px solid var(--line)}
+.row{display:grid;grid-template-columns:var(--cols);gap:0 18px;align-items:center;border-bottom:1.5px solid var(--line);position:relative;background:var(--paper);cursor:pointer;min-height:56px}
+.row:hover{background:#EFEADC}
+.row>*{min-width:0}
+.rank{font-weight:850;font-stretch:112%;font-size:18px;letter-spacing:-.03em;color:var(--ink-2)}
+.rname h3{margin:0;font-size:16px;font-weight:800;font-stretch:104%;letter-spacing:-.02em;line-height:1.2}
+.rname h3 em{font-style:normal;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.more{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;font-weight:inherit;font-stretch:inherit;letter-spacing:inherit;cursor:pointer;text-align:left}
+.more::after{font-weight:700;color:var(--ink-2);margin-left:6px}
+.more[aria-expanded="true"]::after{content:"\2212"}
+.more[aria-expanded="false"]::after{content:"+"}
+
+.chart{position:relative;height:56px}
+.chart .zone{position:absolute;left:0;top:0;bottom:0;background:rgba(43,63,240,.09);transition:width .55s cubic-bezier(.2,.8,.2,1)}
+.chart .wallL{position:absolute;top:0;bottom:0;width:3px;margin-left:-3px;background:var(--ink);transition:left .55s cubic-bezier(.2,.8,.2,1)}
+.chart .base{position:absolute;left:0;right:0;top:50%;border-top:1.5px solid var(--line)}
+.chart .tkl{position:absolute;top:0;bottom:0;border-left:1.5px solid rgba(20,19,15,.07)}
+.bar{position:absolute;left:0;top:50%;height:16px;margin-top:-8px;background:var(--signal);border-radius:0 6px 6px 0;transition:width .55s cubic-bezier(.2,.8,.2,1),background .3s}
+.row[data-s="need"] .bar{background:repeating-linear-gradient(135deg,var(--ink) 0 4px,var(--paper) 4px 8px);border:2.5px solid var(--ink);border-left:0}
+.link{position:absolute;top:50%;height:0;border-top:2.5px dashed var(--warm);margin-top:-1.25px;transition:left .55s cubic-bezier(.2,.8,.2,1),width .55s cubic-bezier(.2,.8,.2,1)}
+.dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--warm);border:2.5px solid var(--ink);transition:left .55s cubic-bezier(.2,.8,.2,1),background .3s}
+.dot.in{background:var(--paper)}
+.lbl{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;line-height:1;background:var(--paper);padding:2px 4px;border-radius:5px;white-space:nowrap;transition:left .55s cubic-bezier(.2,.8,.2,1);color:var(--ink)}
+.lbl.flip{transform:translate(-100%,-50%)}
+.lbl.up{top:calc(50% - 16px)}
+.lbl.dn{top:calc(50% + 16px)}
+
+.rspeed{display:flex;flex-direction:column;gap:2px;justify-content:center}
+.sp{font-weight:850;font-stretch:108%;font-size:20px;letter-spacing:-.035em;line-height:1;white-space:nowrap}
+.sp small{font-size:12px;font-weight:700;letter-spacing:0;font-stretch:100%;margin-left:4px;color:var(--ink-2)}
+.sp.none{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--ink-2)}
+.on{font-size:12px;font-weight:600;color:var(--ink-2);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.01em;padding:5px 10px;border-radius:999px;border:2.5px solid var(--ink);white-space:nowrap;line-height:1.1}
+.chip[data-s="measured"]{background:var(--signal);color:var(--paper);border-color:var(--signal)}
+.chip[data-s="fits"]{background:transparent;color:var(--ink)}
+.chip[data-s="need"]{background:var(--ink);color:var(--paper)}
+.detail{grid-column:2/-1;padding:0 0 16px;display:none;cursor:auto}
+.row.open .detail{display:block}
+.detail dl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:7px 18px;margin:0;font-size:14px;line-height:1.4;max-width:900px;background:var(--paper-2);padding:16px 18px;border-radius:14px}
+.detail dt{font-weight:800;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);padding-top:2px}
+.detail dd{margin:0;font-weight:500}
+.detail dd ul{margin:0;padding:0;list-style:none}
+
+/* limits + footer */
+.limits{background:var(--ink);color:#CFC9B8;--focus:#F4F0E6;margin:0;padding:18px 0;font-size:13.5px;line-height:1.5}
+.limits b{color:var(--paper)}
+footer{background:var(--ink);color:var(--paper);--focus:#F4F0E6;padding:0 0 28px}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center;padding-top:20px;border-top:1.5px solid rgba(244,240,230,.22);font-size:13.5px;color:#CFC9B8}
+footer .mark{color:var(--paper)}
+
+/* tablet */
+@media (max-width:1100px){
+  :root{--cols:36px 200px minmax(0,1fr) 130px 130px}
+  .axis-in,.row{gap:0 14px}
+}
+/* phone */
+@media (max-width:820px){
+  .wrap{padding:0 16px}
+  .cta{font-size:16px;padding:12px 18px;box-shadow:0 4px 0 var(--ink)}
+  h1{margin-top:16px}
+  .hero{padding-bottom:28px}
+  .hero-row{grid-template-columns:1fr;gap:0;margin-top:14px}
+  .idea{margin-bottom:16px;max-width:none}
+  .hero-act{margin-top:22px}
+  .seg{grid-template-columns:1fr 1fr}
+  .seg button{min-height:64px;padding:8px 12px}
+  .tally{grid-template-columns:1fr;margin-top:18px;padding-top:14px;gap:12px}
+  .tally .big small{margin-top:6px}
+  .strip li{height:22px}
+  .axis-in{display:block;padding:8px 0 0}
+  .axis-in .sel{padding-bottom:6px;gap:10px;flex-wrap:wrap}
+  .axis-in .hd{display:none}
+  .axis{height:46px}
+  .row{grid-template-columns:30px minmax(0,1fr) auto;grid-template-areas:"rank name state" "chart chart chart" "speed speed speed" "detail detail detail";gap:0 10px;padding:10px 0}
+  .rank{grid-area:rank}
+  .rname{grid-area:name}
+  .rstate{grid-area:state;text-align:right}
+  .chart{grid-area:chart;height:56px}
+  .rspeed{grid-area:speed;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+  .detail{grid-area:detail;padding-bottom:6px}
+  .detail dl{grid-template-columns:1fr;gap:2px;padding:14px}
+  .detail dt{margin-top:8px}
+}
+@media (max-width:400px){
+  .seg button .n{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#board">Skip to the list</a>
+
+<header class="hero on-signal">
+  <div class="wrap">
+    <nav aria-label="Main">
+      <a class="mark" href="#top" id="top" aria-label="Mference, top of page"><img src="assets/mference-app-icon.png" alt="" width="32" height="32"><span>Mference</span></a>
+    </nav>
+
+    <h1>Your Mac is bigger than you think.</h1>
+
+    <div class="hero-row">
+      <div>
+        <p class="idea">Run models <b>larger than your RAM</b>: only the experts each token needs are read from SSD.</p>
+        <div class="hero-act"><a class="cta" href="https://github.com/NeelM0906/Mference/releases">Get the source release</a></div>
+      </div>
+      <div>
+        <p class="picker-label" id="pick-l">Pick a Mac</p>
+        <div class="seg" id="seg-main" role="radiogroup" aria-labelledby="pick-l"></div>
+        <div class="tally" aria-live="polite">
+          <div class="big"><span id="t-n">9</span> of 10<small id="t-small">run on a 24 GB Mac</small></div>
+          <div>
+            <ul class="strip" id="strip" aria-hidden="true"></ul>
+            <ul class="counts">
+              <li><i class="m"></i><b id="c-m">5</b> measured</li>
+              <li><i></i><b id="c-f">4</b> fit on paper</li>
+              <li><i class="n"></i><b id="c-n">1</b> need a bigger Mac</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="board" class="board">
+  <div class="axis-bar">
+    <div class="wrap">
+      <div class="axis-in">
+        <div class="sel"><span class="lab">Mac</span><div class="seg compact" id="seg-sticky" role="radiogroup" aria-label="Mac memory"></div></div>
+        <div class="axis" id="axis" aria-hidden="true"><div class="zone-l" id="zone-l"><span id="zone-t">24 GB RAM</span></div></div>
+        <div class="hd">Decode speed</div>
+        <div class="hd">Verdict</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="intro">Ten families, fastest measured first. Log memory axis. Click a row for details. Source: README.</p>
+    <ul class="legend" aria-label="How to read the bars">
+      <li><span class="sw bar"></span>Memory held</li>
+      <li><span class="sw dot"></span>Install on SSD</li>
+      <li><span class="sw wall"></span>Mac's RAM</li>
+      <li><span class="sw hatch"></span>Over RAM</li>
+    </ul>
+    <ol class="rows" id="rows"></ol>
+  </div>
+</main>
+
+<p class="limits"><span class="wrap" style="display:block"><b>Limits:</b> source release, not a signed app · no weights bundled · server binds 127.0.0.1, no login · speeds are README runs on the Mac named per row · MIT</span></p>
+
+<footer>
+  <div class="wrap">
+    <a class="mark" href="#top" aria-label="Mference, top of page"><img src="assets/mference-app-icon.png" alt="" width="32" height="32"><span>Mference</span></a>
+    <span>Figures from the <a href="https://github.com/NeelM0906/Mference/blob/main/README.md">README</a>. Derived in part from <a href="https://github.com/drumih/turbo-fieldfare">TurboFieldfare</a> by Andrey Mikhaylov (Apache 2.0).</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ---- Data: every value from Mference/README.md ---- */
+var HOSTS=[
+  {id:"8",  ram:8,   label:"8 GB",   mac:"M2 Air"},
+  {id:"16", ram:16,  label:"16 GB",  mac:"M2 Air · M4"},
+  {id:"24", ram:24,  label:"24 GB",  mac:"M5"},
+  {id:"256",ram:256, label:"256 GB", mac:"M3 Ultra"}
+];
+var FAMS=[
+ {id:"gemma4",name:"Gemma 4 26B-A4B",params:"26B total · ~3.88B active",disk:14.3,diskT:"~14.3 GB",
+  mem:{d:{gb:2,t:"~2 GB"}},
+  sp:{"8":{lo:5.1,hi:6.3,on:"8 GB M2 Air"},"24":{lo:31,hi:35,on:"24 GB M5 Pro"},"256":{lo:17.1,hi:18.7,on:"256 GB M3 Ultra"}},
+  notes:["The 24 GB figure was measured on an M5 Pro."]},
+ {id:"qat",name:"Gemma 4 QAT 26B-A4B",params:"26B total · ~3.88B active",disk:14.45,diskT:"~14.45 GB (14,451,052,105 bytes)",
+  mem:{d:{gb:2.16,t:"~2.16 GiB peak process footprint (4K context, 16 slots, FP16 KV)"}},
+  sp:{"16":{lo:7.11,hi:7.11,on:"16 GiB fanless M2 Air",shown:"7.11"}},
+  notes:["Diagnostic runs with cool-downs, not community-protocol benchmarks.","6.44 tok/s with shadow prefetch off; 7.16 at prefetch budget 2."]},
+ {id:"qwen36",name:"Qwen 3.6 35B-A3B",params:"35B total · ~3B active",disk:19.6,diskT:"~19.6 GB",
+  mem:{d:{gb:1.45,t:"~1.45 GB at 16 slots"},"256":{gb:6.8,t:"6.8 GB peak, 96-slot auto rung"}},
+  sp:{"24":{lo:23.5,hi:29.3,on:"24 GB M5",note:"32-slot profile"},"256":{lo:36.1,hi:42.2,on:"256 GB M3 Ultra",note:"96-slot auto rung"}},
+  notes:["The bar shows the 16-slot figure where the README gives no peak for the rung used (24 GB M5).","Hosts below 16 GiB keep the 16-slot memory-first path."]},
+ {id:"dsv4",name:"DeepSeek-V4-Flash 284B-A13B",tag:"experimental",params:"284B total · ~13B active · 2-bit experts, 4-bit core",disk:91,diskT:"~91 GB",
+  mem:{d:{gb:5.7,t:"~5.7 GB peak at 16 slots (5,695–5,736 MiB)"}},
+  sp:{"256":{lo:5.6,hi:6.7,on:"256 GB M3 Ultra"}},notes:[]},
+ {id:"inkling",name:"Inkling-Small 276B-A12B",params:"276B total · ~12B active",disk:148,diskT:"~148 GB",
+  mem:{d:{gb:9,t:"~9 GB including a 4K KV cache"}},
+  sp:{"24":{lo:3.0,hi:3.7,on:"24 GB M5",note:"native top-6 path"},"256":{lo:5.3,hi:7.1,on:"256 GB M3 Ultra",note:"~8.95 GB peak"}},
+  notes:["Stays at 16 slots: a 24-slot test on the 24 GB M5 entered memory pressure and regressed sharply."]},
+ {id:"maple",name:"Maple Preview 20B-A1B",params:"20B total · ~1B active · ternary 1.58 bit",disk:6.6,diskT:"~6.6 GB",
+  mem:{d:{gb:0.49,t:"490.64 MiB, 128-token prompt"},"16":{gb:1.21,t:"491–1,211 MiB peak, 128–8192 context"}},
+  sp:{"16":{lo:18.9,hi:24.6,on:"16 GB M4",note:"exact head, 128–8192 context"},"256":{lo:38.5,hi:38.5,on:"256 GB M3 Ultra",shown:"38.5"}},
+  notes:["The pinned checkpoint declares no license. Establish the rights before using it."]},
+ {id:"qwen38",name:"Qwen 3.8 27B",params:"27B dense · all active",disk:15,diskT:"~15 GB",minRam:24,minWhy:"README: fully resident Qwen 3.8 requires a 24 GB-class host",
+  mem:{d:{gb:15,t:"~15 GB, fully resident"}},
+  sp:{"24":{lo:15.0,hi:15.0,on:"24 GB M5",shown:"15.0",note:"MTP speculative decoding, byte-identical output; 7.9 plain"},"256":{lo:38.4,hi:39.4,on:"256 GB M3 Ultra",note:"plain decode; MTP gives no gain here"}},
+  notes:["Prefill about 60 tok/s on the 24 GB M5. mlx-vlm on the same checkpoint: 6.41 decode, 40.5 prefill.","Context up to 262k through a paged KV cache with an SSD tier; passkey exact at 10.6k tokens."]},
+ {id:"flash",name:"Qwen3.8-Flash-Next 180B-A3.5B",tag:"new",params:"~180B total · ~3.5B active · 512 experts, top-10",disk:175,diskT:"~175 GB",
+  mem:{d:{gb:2.36,t:"~2.36 GB at 16 slots"},"256":{gb:68,t:"~68 GiB routed pool mapped (hosts with 192 GiB or more)"}},
+  sp:{"256":{lo:18.2,hi:21.0,on:"256 GB M3 Ultra",note:"frozen protocol: 20.1 / 21.0 / 18.2"}},
+  notes:["Prefill 24 / 96 / 210 prompt tok/s at 62 / 426 / 2,940 tokens (256 GB M3 Ultra).","At 16 slots (~2.36 GB) the earlier run on that Mac decoded 11.11–11.81 tok/s. No smaller Mac is measured yet; mid-memory rungs are still being measured.","Passkey exact at 3,247 tokens of context."]},
+ {id:"minicpm",name:"MiniCPM5-2B",tag:"new",params:"2B dense · all active",disk:1.43,diskT:"1.43 GB (1,425,981,882 bytes)",
+  mem:{d:{gb:0.123,t:"123 MiB peak RSS, short-explanation case"}},
+  sp:{"24":{lo:65.5,hi:65.8,on:"24 GB M5",shown:"65.56",note:"65.50–65.80 across 3 runs"}},
+  notes:["At a raised token cap, the longer cases decoded 37.63 and 34.72 tok/s (24 GB M5).","Passkey exact at 8,692 prompt tokens."]},
+ {id:"glm",name:"GLM-5.3-Flash 320B-A18B",tag:"new",params:"320B total · 18B active · 288 experts, top-8",disk:181,diskT:"~181 GB",
+  mem:{d:{gb:181,t:"~181 GB, whole expert set resident (stated on a 256 GB host)"}},
+  sp:{},notes:["Family gate green 2026-09-11; the prefill performance pass is continuing. The README gives no speed."]}
+];
+
+/* ---- Chart scale: log axis, 50 MB to 400 GB ---- */
+var MIN=0.05,MAX=400,LMIN=Math.log10(MIN),LSPAN=Math.log10(MAX)-LMIN;
+function P(gb){return Math.max(0,Math.min(100,(Math.log10(gb)-LMIN)/LSPAN*100));}
+var TICKS=[[0.1,"100 MB"],[1,"1 GB"],[10,"10 GB"],[100,"100 GB"]];
+
+function fmtGB(g){
+  if(g<1)return Math.round(g*1024)+" MiB";
+  if(g<10)return (Math.round(g*100)/100).toString()+" GB";
+  return (Math.round(g*10)/10).toString().replace(/\.0$/,"")+" GB";
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+var hash="";try{hash=(location.hash||"").replace("#","");}catch(e){}
+var current=HOSTS.filter(function(h){return h.id===hash;})[0]||HOSTS[2];
+var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---- Controls ---- */
+function buildSeg(el,compact){
+  HOSTS.forEach(function(h){
+    var b=document.createElement("button");
+    b.type="button";b.setAttribute("role","radio");b.dataset.id=h.id;
+    b.innerHTML='<span class="n">'+h.label+'</span><span class="m">'+h.mac+'</span>';
+    if(compact)b.title=h.label+" "+h.mac;
+    b.addEventListener("click",function(){select(h.id,true);});
+    el.appendChild(b);
+  });
+  el.addEventListener("keydown",function(e){
+    var k=e.key,dir=0;
+    if(k==="ArrowRight"||k==="ArrowDown")dir=1;else if(k==="ArrowLeft"||k==="ArrowUp")dir=-1;else return;
+    e.preventDefault();
+    var i=HOSTS.indexOf(current);i=(i+dir+HOSTS.length)%HOSTS.length;
+    select(HOSTS[i].id,true);
+    var nb=el.querySelector('[data-id="'+HOSTS[i].id+'"]');if(nb)nb.focus();
+  });
+}
+var segMain=document.getElementById("seg-main"),segSticky=document.getElementById("seg-sticky");
+buildSeg(segMain,false);buildSeg(segSticky,true);
+
+/* ---- Axis ticks ---- */
+var axis=document.getElementById("axis");
+TICKS.forEach(function(t){
+  var d=document.createElement("div");d.className="tk";d.style.left=P(t[0])+"%";
+  d.innerHTML="<span>"+t[1]+"</span>";axis.appendChild(d);
+});
+
+/* ---- Rows ---- */
+var rowsEl=document.getElementById("rows");
+var rowRefs={};
+FAMS.forEach(function(f){
+  var li=document.createElement("li");li.className="row";li.dataset.id=f.id;
+  var tk="";TICKS.forEach(function(t){tk+='<i class="tkl" style="left:'+P(t[0])+'%"></i>';});
+  li.innerHTML=
+    '<div class="rank"></div>'+
+    '<div class="rname"><h3><button type="button" class="more" aria-expanded="false" aria-controls="d-'+f.id+'">'+esc(f.name)+'</button>'+(f.tag?"<em>"+f.tag+"</em>":"")+'</h3></div>'+
+    '<div class="chart">'+
+      '<div class="zone"></div>'+tk+'<div class="base"></div>'+
+      '<div class="link"></div><div class="bar"></div><div class="dot"></div>'+
+      '<span class="lbl bl"></span><span class="lbl dl"></span>'+
+      '<div class="wallL"></div></div>'+
+    '<div class="rspeed"></div>'+
+    '<div class="rstate"></div>'+
+    '<div class="detail" id="d-'+f.id+'"><dl></dl></div>';
+  rowsEl.appendChild(li);
+  var r={li:li,f:f,
+    rank:li.querySelector(".rank"),zone:li.querySelector(".zone"),wall:li.querySelector(".wallL"),
+    bar:li.querySelector(".bar"),dot:li.querySelector(".dot"),link:li.querySelector(".link"),
+    bl:li.querySelector(".bl"),dl:li.querySelector(".dl"),
+    speed:li.querySelector(".rspeed"),state:li.querySelector(".rstate"),
+    dtl:li.querySelector(".detail dl"),more:li.querySelector(".more")};
+  li.addEventListener("click",function(e){
+    if(e.target.closest(".detail"))return;
+    var o=li.classList.toggle("open");r.more.setAttribute("aria-expanded",o?"true":"false");
+  });
+  rowRefs[f.id]=r;
+});
+
+/* ---- Evaluate one family on one Mac ---- */
+function evalFam(f,h){
+  var m=f.mem[h.id]||f.mem.d;
+  var sp=f.sp[h.id]||null;
+  var need=m.gb>h.ram||(f.minRam&&h.ram<f.minRam);
+  var s=need?"need":(sp?"measured":"fits");
+  var needGB=f.minRam&&h.ram<f.minRam&&f.minRam>m.gb?f.minRam:Math.ceil(m.gb);
+  return {m:m,sp:sp,s:s,needGB:needGB};
+}
+function midSpeed(e){return e.sp?(e.sp.lo+e.sp.hi)/2:-1;}
+
+function speedHTML(f,e,h){
+  if(e.s==="need"){
+    return '<div class="sp none">Not on this Mac</div><div class="on">Needs '+(f.minRam&&h.ram<f.minRam?f.minRam+" GB-class host":"≥ "+e.needGB+" GB")+'</div>';
+  }
+  if(!e.sp){
+    return '<div class="sp none">Not measured</div><div class="on">No README speed here</div>';
+  }
+  var s=e.sp,txt=s.shown||(s.lo===s.hi?String(s.lo):s.lo+"–"+s.hi);
+  return '<div class="sp">'+txt+'<small>tok/s</small></div><div class="on" title="'+esc(s.on)+'">'+esc(s.on)+'</div>';
+}
+function stateHTML(f,e,h){
+  var chipT=e.s==="measured"?"Measured":e.s==="fits"?"Fits on paper":"Needs a bigger Mac";
+  return '<span class="chip" data-s="'+e.s+'">'+chipT+'</span>';
+}
+function detailHTML(f,e,h){
+  var allSp="";
+  HOSTS.forEach(function(x){var s=f.sp[x.id];if(s){
+    var t=s.shown||(s.lo===s.hi?s.lo:s.lo+"–"+s.hi);
+    allSp+="<li>"+esc(s.on)+": <b>"+t+" tok/s</b>"+(s.note?" ("+esc(s.note)+")":"")+"</li>";}});
+  var h2="";
+  h2+="<dt>Size</dt><dd>"+esc(f.params)+"</dd>";
+  h2+="<dt>Memory here</dt><dd>"+esc(e.m.t)+"</dd>";
+  h2+="<dt>Install on SSD</dt><dd>"+esc(f.diskT)+(f.disk>h.ram?" · computed "+(Math.round(f.disk/h.ram*10)/10)+"× this Mac's RAM, streamed from SSD":" · fits in this Mac's RAM")+"</dd>";
+  if(f.minWhy)h2+="<dt>Host requirement</dt><dd>"+esc(f.minWhy)+"</dd>";
+  h2+="<dt>Decode speed</dt><dd>"+(allSp?"<ul>"+allSp+"</ul>":"No decode speed in the README.")+"</dd>";
+  if(f.notes.length)h2+="<dt>Also</dt><dd><ul>"+f.notes.map(function(n){return"<li>"+esc(n)+"</li>";}).join("")+"</ul></dd>";
+  h2+="<dt>Verdict rule</dt><dd>Fits on paper: README memory is below this Mac's RAM and the README gives no speed. The README states no OS headroom.</dd>";
+  h2+="<dt>Source</dt><dd>README, family list and the “At a glance” table. Memory and install sizes keep the README's units (GB, GiB, MiB); the chart treats them as one unit.</dd>";
+  return h2;
+}
+
+/* ---- Render ---- */
+var firstRender=true;
+function render(){
+  var h=current;
+  var ev=FAMS.map(function(f){return{f:f,e:evalFam(f,h)};});
+  ev.sort(function(a,b){
+    var ra=a.e.s==="need"?2:a.e.sp?0:1,rb=b.e.s==="need"?2:b.e.sp?0:1;
+    if(ra!==rb)return ra-rb;
+    if(ra===0)return midSpeed(b.e)-midSpeed(a.e);
+    return a.e.m.gb-b.e.m.gb;
+  });
+
+  /* FLIP */
+  var first={};
+  if(!firstRender&&!reduce){Object.keys(rowRefs).forEach(function(id){first[id]=rowRefs[id].li.getBoundingClientRect().top;});}
+
+  var counts={measured:0,fits:0,need:0};
+  var wallPct=P(h.ram);
+  ev.forEach(function(x,i){
+    var r=rowRefs[x.f.id],f=x.f,e=x.e;
+    rowsEl.appendChild(r.li);
+    r.li.dataset.s=e.s;
+    r.rank.textContent=(i<9?"0":"")+(i+1);
+    counts[e.s]++;
+    /* chart */
+    r.zone.style.width=wallPct+"%";
+    r.wall.style.left=wallPct+"%";
+    var bp=P(e.m.gb);
+    r.bar.style.width=bp+"%";
+    var showDot=Math.abs(f.disk-e.m.gb)/e.m.gb>0.06;
+    var dp=P(f.disk);
+    r.dot.style.display=r.link.style.display=showDot?"":"none";
+    if(showDot){
+      r.dot.style.left=dp+"%";
+      r.dot.classList.toggle("in",f.disk<=h.ram);
+      r.link.style.left=bp+"%";r.link.style.width=Math.max(0,dp-bp)+"%";
+    }
+    /* labels: bar end and install size */
+    var merge=showDot&&(dp-bp)<13;
+    function place(el,p,text){
+      el.textContent=text;
+      var flip=p>82;
+      el.classList.toggle("flip",flip);
+      el.style.left=p+"%";
+      el.style.marginLeft=flip?"-8px":"12px";
+    }
+    place(r.bl,bp,fmtGB(e.m.gb));
+    r.bl.classList.remove("up","dn");
+    if(showDot){
+      r.dl.style.display="";
+      place(r.dl,dp,fmtGB(f.disk)+" on SSD");
+      if(merge){r.bl.classList.add("up");r.dl.classList.add("dn");}
+      else{r.dl.classList.remove("dn");}
+    }else{r.dl.style.display="none";}
+    r.speed.innerHTML=speedHTML(f,e,h);
+    r.state.innerHTML=stateHTML(f,e,h);
+    r.dtl.innerHTML=detailHTML(f,e,h);
+  });
+
+  /* FLIP play */
+  if(!firstRender&&!reduce){
+    Object.keys(rowRefs).forEach(function(id){
+      var li=rowRefs[id].li,dy=first[id]-li.getBoundingClientRect().top;
+      if(dy&&li.animate)li.animate([{transform:"translateY("+dy+"px)"},{transform:"none"}],{duration:520,easing:"cubic-bezier(.2,.8,.2,1)"});
+    });
+  }
+  firstRender=false;
+
+  /* sticky axis */
+  document.getElementById("zone-l").style.width=wallPct+"%";
+  document.getElementById("zone-t").textContent=h.label+" RAM";
+
+  /* live answer */
+  var run=counts.measured+counts.fits;
+  document.getElementById("t-n").textContent=run;
+  document.getElementById("t-small").textContent="run on a "+h.label+" Mac ("+h.mac+")";
+  document.getElementById("c-m").textContent=counts.measured;
+  document.getElementById("c-f").textContent=counts.fits;
+  document.getElementById("c-n").textContent=counts.need;
+  var st=document.getElementById("strip");st.innerHTML="";
+  ["measured","fits","need"].forEach(function(k){
+    for(var i=0;i<counts[k];i++){var li=document.createElement("li");li.dataset.s=k;st.appendChild(li);}
+  });
+
+  /* controls + hash */
+  [segMain,segSticky].forEach(function(seg){
+    Array.prototype.forEach.call(seg.children,function(b){
+      var on=b.dataset.id===h.id;
+      b.setAttribute("aria-checked",on?"true":"false");
+      b.tabIndex=on?0:-1;
+    });
+  });
+  try{history.replaceState(null,"","#"+h.id);}catch(e){}
+}
+function select(id,user){
+  var h=HOSTS.filter(function(x){return x.id===id;})[0];
+  if(!h||h===current)return;
+  current=h;render();
+}
+render();
+})();
+</script>
+</body>
+</html>

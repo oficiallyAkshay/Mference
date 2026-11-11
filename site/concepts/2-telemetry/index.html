@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mference — Measured, not claimed</title>
+<meta name="description" content="Mference streams only the experts each token picks from SSD, so a 175 GB model decodes in 2.36 GB of memory on Apple Silicon. Every figure is measured.">
+<link rel="icon" href="assets/mference-app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F0E8; --panel:#FAF9F4; --ink:#15171A; --ink2:#4A4E55;
+  --hair:#D3CFC1; --hair2:#E7E4D9;
+  --signal:#E5460F; --signal-ink:#B3350A; --signal-wash:rgba(229,70,15,.11);
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r:8px; --gut:24px;
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{
+  margin:0; background-color:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  background-image:
+    linear-gradient(to right, rgba(21,23,26,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21,23,26,.045) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--signal-ink); outline-offset:3px; border-radius:4px}
+.wrap{max-width:1360px; margin:0 auto; padding:0 var(--gut)}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.lbl{font:500 12px/1.3 var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--ink2); margin:0}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* wordmark: one treatment, nav and footer */
+.mark{display:inline-flex; align-items:center; gap:10px; text-decoration:none}
+.mark img{width:28px; height:28px; border-radius:7px; display:block; box-shadow:0 0 0 1px var(--hair)}
+.mark span{font:700 17px/1 var(--mono); letter-spacing:-.02em}
+
+nav{display:flex; justify-content:space-between; align-items:center; padding:18px 0 14px; border-bottom:1px solid var(--hair)}
+nav .meta{font:500 12px/1.3 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--ink2); text-align:right}
+
+/* hero */
+.hero{padding:34px 0 8px}
+h1{
+  margin:0; font-family:var(--sans); font-weight:700; letter-spacing:-.045em; line-height:.95;
+  font-size:clamp(46px,7.1vw,100px);
+}
+h1 .not{box-shadow:inset 0 -.11em 0 var(--signal)}
+.heroRow{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:end; margin-top:22px}
+.stand{margin:0; font-size:clamp(18px,1.7vw,22px); line-height:1.35; max-width:44ch; letter-spacing:-.01em}
+.stand b{font-weight:650}
+.btn{
+  display:inline-flex; align-items:center; gap:12px; background:var(--ink); color:var(--paper); text-decoration:none;
+  font:700 15px/1 var(--mono); padding:16px 20px; border-radius:var(--r); white-space:nowrap;
+}
+.btn i{display:inline-block; width:10px; height:10px; background:var(--signal); border-radius:2px}
+.btn:hover{background:#000}
+.btn:focus-visible{outline-color:var(--signal-ink)}
+
+/* the sliver: owned motif */
+.sliver{margin:26px 0 0}
+.sliverTrack{position:relative; height:14px; border:1px solid var(--ink); border-radius:3px;
+  background:repeating-linear-gradient(90deg,transparent 0 11px,var(--hair) 11px 12px)}
+.sliverFill{position:absolute; left:-1px; top:-1px; bottom:-1px; width:max(1.35%,5px); background:var(--signal); border-radius:3px 0 0 3px}
+.sliverCap{display:flex; justify-content:space-between; gap:16px; margin-top:8px; flex-wrap:wrap}
+.sliverCap span{font:500 12px/1.4 var(--mono); color:var(--ink2)}
+.sliverCap b{color:var(--signal-ink); font-weight:700}
+
+/* selector */
+.picker{margin:22px 0 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.picker .lbl{margin-right:8px}
+.pick{
+  appearance:none; cursor:pointer; background:var(--panel); border:1px solid var(--hair); border-radius:var(--r);
+  padding:9px 13px; font:500 13px/1.2 var(--mono); color:var(--ink); text-align:left;
+}
+.pick small{display:block; font-size:12px; color:var(--ink2); margin-top:3px}
+.pick:hover{border-color:var(--ink)}
+.pick[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.pick[aria-pressed="true"] small{color:#C9C6BB}
+
+/* bento */
+.grid{display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px}
+.panel{background:var(--panel); border:1px solid var(--hair); border-radius:var(--r); padding:20px; min-width:0; position:relative}
+.panel>header{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:14px; flex-wrap:wrap}
+.panel h2{margin:0; font:700 15px/1.3 var(--sans); letter-spacing:-.01em}
+.chip{font:700 12px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--signal-ink); color:var(--signal-ink); padding:4px 7px; border-radius:4px; white-space:nowrap}
+.src{margin:16px 0 0; padding-top:10px; border-top:1px solid var(--hair2); font:400 12px/1.45 var(--mono); color:var(--ink2)}
+.c-chart{grid-column:span 8} .c-gauge{grid-column:span 4}
+.c-t{grid-column:span 6} .c-mx{grid-column:span 12}
+.rd{font:500 12px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--ink2); border:1px solid var(--hair); border-radius:4px; padding:3px 6px; white-space:nowrap}
+.strip{margin:10px 0 0; padding:10px 14px; background:var(--panel); border:1px solid var(--hair); border-radius:var(--r); font:400 12px/1.5 var(--mono); color:var(--ink2)}
+.strip b{color:var(--ink); font-weight:700}
+
+/* chart */
+.canvasBox{position:relative; background:linear-gradient(var(--paper),var(--paper)); border:1px solid var(--hair2); border-radius:6px}
+canvas{display:block}
+.legend{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:0}
+.legend li{display:grid; grid-template-columns:22px minmax(0,1fr) auto auto; gap:12px; align-items:center; padding:9px 0; border-top:1px solid var(--hair2)}
+.legend .tag{font:700 12px/1 var(--mono); width:20px; height:20px; display:grid; place-items:center; background:var(--signal); color:#fff; border-radius:4px}
+.legend .nm{font:500 13px/1.25 var(--mono)} .legend .nm small{display:block; font-size:12px; color:var(--ink2); margin-top:2px}
+.legend .rg{font:700 14px/1 var(--mono); white-space:nowrap}
+.legend .nw{font:500 12px/1 var(--mono); color:var(--signal-ink); min-width:60px; text-align:right; white-space:nowrap}
+
+/* gauge */
+.big{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 4px}
+.big .n{font:700 clamp(52px,5vw,76px)/1 var(--mono); letter-spacing:-.05em}
+.big .n em{font-style:normal; color:var(--signal-ink)}
+.gRow{margin-top:16px}
+.gRow .top{display:flex; justify-content:space-between; gap:10px; align-items:baseline}
+.gRow .top .v{font:700 14px/1.2 var(--mono); white-space:nowrap}
+.gRow .top .k{font:500 12px/1.3 var(--mono); color:var(--ink2); text-transform:uppercase; letter-spacing:.06em}
+.track{position:relative; height:12px; margin-top:6px; border:1px solid var(--ink); border-radius:3px; background:repeating-linear-gradient(90deg,transparent 0 11px,var(--hair) 11px 12px)}
+.track.full{background:var(--ink); border-color:var(--ink)}
+.fill{position:absolute; left:-1px; top:-1px; bottom:-1px; background:var(--signal); border-radius:3px 0 0 3px; min-width:5px; transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.fill.hollow{background:var(--signal-wash); border:1px solid var(--signal); }
+.gRow .sub{font:400 12px/1.4 var(--mono); color:var(--ink2); margin-top:5px}
+.tally{margin:18px 0 0; padding-top:12px; border-top:1px solid var(--hair2); font:500 13px/1.5 var(--mono)}
+.tally b{color:var(--signal-ink)}
+
+/* compare bars */
+.cmp{display:grid; gap:12px}
+.cmp .r .top{display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+.cmp .r .k{font:500 13px/1.3 var(--mono)} .cmp .r .k small{display:block; font-size:12px; color:var(--ink2)}
+.cmp .r .v{font:700 22px/1 var(--mono); letter-spacing:-.03em; white-space:nowrap} .cmp .r .v small{font-size:12px; font-weight:500; letter-spacing:0; color:var(--ink2)}
+.cmp .r.hi .v{color:var(--signal-ink)}
+.cmp .track.b{background:repeating-linear-gradient(90deg,transparent 0 11px,var(--hair) 11px 12px)}
+.cmp .track.ref .fill{background:var(--ink)}
+.ratio{margin:16px 0 0; display:flex; align-items:baseline; gap:10px}
+.ratio b{font:700 34px/1 var(--mono); letter-spacing:-.04em; color:var(--signal-ink)}
+.ratio span{font:500 12px/1.3 var(--mono); color:var(--ink2)}
+.sep{height:1px; background:var(--hair2); margin:14px 0}
+
+/* matrix */
+.mx{width:100%; border-collapse:collapse; table-layout:fixed}
+.mx th,.mx td{text-align:left; padding:6px 8px 6px 0; border-top:1px solid var(--hair2); vertical-align:top}
+.mx thead th{border-top:0; padding-top:0; padding-bottom:8px; font:500 12px/1.25 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--ink2)}
+.mx thead th b{display:block; color:var(--ink); font-weight:700}
+.mx tbody th{font:500 14px/1.2 var(--sans); width:27%}
+.mx tbody th small{display:block; font:400 12px/1.35 var(--mono); color:var(--ink2); margin-top:3px}
+.mx td{font:700 14px/1.1 var(--mono)}
+.mx td.no{color:var(--hair); font-weight:400}
+.mx td .rb{display:block; position:relative; height:3px; margin-top:7px; background:var(--hair2); border-radius:2px; max-width:96px}
+.mx td .rb i{position:absolute; top:0; bottom:0; background:var(--signal); border-radius:2px; min-width:3px}
+.mx sup{font:500 12px/1 var(--mono); color:var(--signal-ink); margin-left:2px}
+.notes{columns:2; column-gap:24px; margin:10px 0 0; padding:10px 0 0; border-top:1px solid var(--hair2); font:400 12px/1.55 var(--mono); color:var(--ink2); list-style:none}
+.notes li{margin:0 0 2px} .notes sup{color:var(--signal-ink); margin-right:6px}
+
+/* gates */
+.gates{list-style:none; margin:0; padding:0}
+.gates li{display:grid; grid-template-columns:20px minmax(0,1fr); gap:12px; padding:11px 0; border-top:1px solid var(--hair2)}
+.gates li:first-child{border-top:0; padding-top:0}
+.ck{width:18px; height:18px; border:1.5px solid var(--ink); border-radius:4px; position:relative; margin-top:2px}
+.ck::after{content:""; position:absolute; left:4px; top:0; width:5px; height:10px; border:solid var(--signal-ink); border-width:0 2.5px 2.5px 0; transform:rotate(40deg)}
+.gates b{display:block; font:700 14px/1.3 var(--sans)}
+.gates span{display:block; font:400 13px/1.45 var(--sans); color:var(--ink2); margin-top:2px}
+.caught{margin:14px 0 0; padding:10px 12px; background:var(--signal-wash); border-radius:6px; font:500 12px/1.5 var(--mono)}
+
+/* footer */
+footer{margin-top:14px}
+.foot{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto; gap:28px; align-items:start}
+.foot p{margin:0; font-size:14px; color:var(--ink2); line-height:1.55}
+.foot .limits b{color:var(--ink); font-weight:650}
+.foot .lbl{margin-bottom:8px}
+.legal{padding:18px 0 40px; display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font:400 12px/1.5 var(--mono); color:var(--ink2)}
+.legal a{text-underline-offset:3px}
+
+@media (max-width:1100px){
+  .c-chart,.c-gauge,.c-t,.c-mx{grid-column:span 12}
+  .c-t{grid-column:span 6}
+}
+@media (max-width:760px){
+  :root{--gut:16px}
+  .c-t{grid-column:span 12}
+  .notes{columns:1!important}
+  .heroRow{grid-template-columns:1fr}
+  .btn{justify-content:space-between; width:100%}
+  nav .meta{max-width:150px}
+  .picker{display:grid; grid-template-columns:1fr 1fr}
+  .picker .lbl{grid-column:1/-1}
+  .panel{padding:16px}
+  .legend li{grid-template-columns:22px minmax(0,1fr) auto}
+  .legend .nw{display:none}
+  .mx th,.mx td{padding-right:4px}
+  .mx tbody th{width:26%; font-size:13px}
+  .mx td{font-size:12px}
+  .mx thead th{font-size:12px; letter-spacing:.02em}
+  .foot{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  .fill{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav aria-label="Mference">
+    <a class="mark" href="#top"><img src="assets/mference-app-icon.png" alt="" width="28" height="28"><span>Mference</span></a>
+    <div class="meta">MIT · macOS 15+ · source release</div>
+  </nav>
+
+  <header class="hero" id="top">
+    <h1>Measured, <span class="not">not</span> claimed.</h1>
+    <div class="heroRow">
+      <p class="stand">Reads only the experts each token picks from SSD: a <b>175 GB model</b> decodes in <b>2.36 GB</b>.</p>
+      <a class="btn" href="https://github.com/NeelM0906/Mference/releases">Get the source release <i aria-hidden="true"></i></a>
+    </div>
+    <div class="sliver" role="img" aria-label="2.36 GB of memory against 175 GB on disk, Qwen3.8-Flash-Next 180B">
+      <div class="sliverTrack"><div class="sliverFill"></div></div>
+      <div class="sliverCap">
+        <span><b>2.36 GB</b> resident, 16-slot profile, 256 GB M3 Ultra</span>
+        <span>175 GB installed · Qwen3.8-Flash-Next 180B-A3.5B · README</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="picker" role="group" aria-label="Choose a model" id="picker">
+      <p class="lbl">Model</p>
+    </div>
+
+    <div class="grid">
+      <!-- strip chart -->
+      <section class="panel c-chart" aria-labelledby="hChart">
+        <header>
+          <h2 id="hChart">Decode speed, tokens per second</h2>
+          <span><span class="chip">Illustration</span> <span class="rd">README</span></span>
+        </header>
+        <div class="canvasBox" id="cbox"><canvas id="strip" role="img" aria-label="Strip chart of decode speed"></canvas></div>
+        <ol class="legend" id="legend"></ol>
+      </section>
+
+      <!-- gauge -->
+      <section class="panel c-gauge" aria-labelledby="hGauge" aria-live="polite">
+        <header>
+          <h2 id="hGauge">Disk vs memory</h2>
+          <span><span class="lbl" id="gName"></span> <span class="rd">README</span></span>
+        </header>
+        <div class="big"><span class="n" id="gRatio"></span></div>
+        <p class="lbl" style="margin:0">install size ÷ memory (computed)</p>
+
+        <div class="gRow">
+          <div class="top"><span class="k">On disk</span><span class="v" id="gDisk"></span></div>
+          <div class="track full"></div>
+        </div>
+        <div class="gRow">
+          <div class="top"><span class="k">In memory</span><span class="v" id="gMem"></span></div>
+          <div class="track"><div class="fill" id="fMem"></div></div>
+          <div class="sub" id="sMem"></div>
+        </div>
+        <div class="gRow" id="rowFast">
+          <div class="top"><span class="k">Larger profile</span><span class="v" id="gFast"></span></div>
+          <div class="track"><div class="fill hollow" id="fFast"></div></div>
+          <div class="sub" id="sFast"></div>
+        </div>
+        <div class="gRow">
+          <div class="top"><span class="k">Active per token</span><span class="v" id="gAct"></span></div>
+          <div class="track"><div class="fill" id="fAct"></div></div>
+        </div>
+      </section>
+
+      <!-- Qwen 3.8 -->
+      <section class="panel c-t" aria-labelledby="hQ38">
+        <header><h2 id="hQ38">Qwen 3.8 27B decode, same checkpoint</h2><span><span class="lbl">24 GB M5</span> <span class="rd">README</span></span></header>
+        <div class="cmp">
+          <div class="r hi"><div class="top"><span class="k">Mference, MTP<small>speculative, byte-identical output</small></span><span class="v">15.0 <small>tok/s</small></span></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
+          <div class="r"><div class="top"><span class="k">Mference, plain<small>no speculation</small></span><span class="v">7.9 <small>tok/s</small></span></div><div class="track"><div class="fill" style="width:52.67%;background:var(--ink)"></div></div></div>
+          <div class="r"><div class="top"><span class="k">mlx-vlm<small>same checkpoint</small></span><span class="v">6.41 <small>tok/s</small></span></div><div class="track ref"><div class="fill" style="width:42.73%"></div></div></div>
+        </div>
+        <div class="ratio"><b>2.35×</b><span>decode vs mlx-vlm</span></div>
+      </section>
+
+      <!-- Prefill Qwen 3.6 -->
+      <section class="panel c-t" aria-labelledby="hPre">
+        <header><h2 id="hPre">Qwen 3.6 long prefill, same checkpoint</h2><span><span class="lbl">24 GB M5</span> <span class="rd">README</span></span></header>
+        <div class="cmp">
+          <div class="r"><div class="top"><span class="k">Before<small>control</small></span><span class="v">58.45 <small>s</small></span></div><div class="track ref"><div class="fill" style="width:100%"></div></div></div>
+          <div class="r hi"><div class="top"><span class="k">After<small>optimized</small></span><span class="v">26.54 <small>s</small></span></div><div class="track"><div class="fill" style="width:45.40%"></div></div></div>
+        </div>
+        <div class="ratio"><b>2.20×</b><span>faster prefill, seconds, lower wins</span></div>
+      </section>
+
+      <!-- matrix -->
+      <section class="panel c-mx" aria-labelledby="hMx">
+        <header><h2 id="hMx">Decode tok/s by machine</h2><span><span class="lbl">Dash = not measured</span> <span class="rd">README</span></span></header>
+        <table class="mx">
+          <thead><tr><th scope="col">Model</th><th scope="col"><b>8 GB</b>M2 Air</th><th scope="col"><b>24 GB</b>M5</th><th scope="col"><b>256 GB</b>M3 Ultra</th></tr></thead>
+          <tbody id="mxBody"></tbody>
+        </table>
+        <ol class="notes" id="mxNotes"></ol>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p class="strip"><b>Gates every port passes, 5 of 5:</b> Bit parity · Quantizer quality · Kernel parity · Matched A/Bs · Family gate <span class="rd">README</span></p>
+    <p class="strip"><b>Limits:</b> source release, not a signed app · no weights bundled · macOS 15+ · loopback only</p>
+    <div class="legal">
+      <a class="mark" href="#top"><img src="assets/mference-app-icon.png" alt="" width="28" height="28"><span>Mference</span></a>
+      <span>MIT. Built on TurboFieldfare by Andrey Mikhaylov (Apache-2.0 derived parts). Model weights keep their own licenses.</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- data: every figure is from the README ---------- */
+var MODELS=[
+ {id:"gemma",name:"Gemma 4",sub:"26B-A4B",
+  disk:14.3, mem:2, memNote:"~2 GB", memSub:"README model list",
+  fast:null, act:3.88, total:26,
+  yMax:40, step:10,
+  lanes:[
+   {n:"8 GB M2 Air",d:"",lo:5.1,hi:6.3},
+   {n:"24 GB M5 Pro",d:"",lo:31,hi:35},
+   {n:"256 GB M3 Ultra",d:"",lo:17.1,hi:18.7}]},
+ {id:"qwen36",name:"Qwen 3.6",sub:"35B-A3B",
+  disk:19.6, mem:1.45, memNote:"~1.45 GB", memSub:"16-slot profile",
+  fast:{v:6.8,label:"6.8 GB",sub:"96-slot auto rung, 6.8 GB peak, 256 GB M3 Ultra"}, act:3, total:35,
+  yMax:45, step:15,
+  lanes:[
+   {n:"24 GB M5",d:"32 slots",lo:23.5,hi:29.3},
+   {n:"256 GB M3 Ultra",d:"16 slots",lo:22.18,hi:22.82},
+   {n:"256 GB M3 Ultra",d:"96 slots, 6.8 GB peak",lo:36.1,hi:42.2}]},
+ {id:"ds",name:"DeepSeek-V4-Flash",sub:"284B-A13B",
+  disk:91, mem:5.7, memNote:"~5.7 GB", memSub:"peak at the 16-slot rung, experimental",
+  fast:null, act:13, total:284,
+  yMax:8, step:2,
+  lanes:[{n:"256 GB M3 Ultra",d:"5,695–5,736 MiB peak",lo:5.6,hi:6.7}]},
+ {id:"ink",name:"Inkling-Small",sub:"276B-A12B",
+  disk:148, mem:9, memNote:"~9 GB", memSub:"including a 4K KV cache",
+  fast:null, act:12, total:276,
+  yMax:8, step:2,
+  lanes:[
+   {n:"24 GB M5",d:"native top-6 path",lo:3.0,hi:3.7},
+   {n:"256 GB M3 Ultra",d:"~8.95 GB peak",lo:5.3,hi:7.1}]},
+ {id:"fn",name:"Flash-Next",sub:"180B-A3.5B",
+  disk:175, mem:2.36, memNote:"2.36 GB", memSub:"16 slots, peak RSS, 256 GB M3 Ultra",
+  fast:{v:73.0,label:"≈73 GB",sub:"routed pool mapped: 68 GiB (computed ≈73 GB), hosts with 192 GiB or more"}, act:3.5, total:180,
+  yMax:24, step:6,
+  lanes:[
+   {n:"256 GB M3 Ultra",d:"16 slots, ~2.36 GB, earlier run",lo:11.11,hi:11.81},
+   {n:"256 GB M3 Ultra",d:"resident pool, latest run",lo:18.2,hi:21.0}]}
+];
+
+var MATRIX=[
+ {m:"Gemma 4",s:"~2 GB",c:[["5.1–6.3",5.1,6.3],["31–35",31,35,"a"],["17.1–18.7",17.1,18.7]]},
+ {m:"Qwen 3.6",s:"~1.45 GB at 16 slots",c:[0,["23.5–29.3",23.5,29.3,"b"],["36.1–42.2",36.1,42.2,"b"]]},
+ {m:"Qwen 3.8 27B",s:"~15 GB, dense",c:[0,["15.0",15,15,"c"],["38.4–39.4",38.4,39.4,"d"]]},
+ {m:"Inkling-Small",s:"~9 GB",c:[0,["3.0–3.7",3.0,3.7],["5.3–7.1",5.3,7.1]]},
+ {m:"DeepSeek-V4-Flash",s:"~5.7 GB, experimental",c:[0,0,["5.6–6.7",5.6,6.7]]},
+ {m:"Flash-Next",s:"2.36 GB at 16 slots",c:[0,0,["18.2–21.0",18.2,21.0,"e"]]},
+ {m:"Maple Preview",s:"490.64 MiB",c:[0,0,["38.5",38.5,38.5,"f"]]},
+ {m:"MiniCPM5-2B",s:"123 MiB, dense",c:[0,["65.56",65.56,65.56],0]}
+];
+var NOTES=[
+ ["a","24 GB M5 Pro."],
+ ["b","32 slots on M5, 96 on M3 Ultra."],
+ ["c","MTP; plain is 7.9."],
+ ["d","Plain; MTP gives no gain."],
+ ["e","Resident pool; 16 slots 11.11–11.81."],
+ ["f","16 GB M4: 18.9–24.6."]
+];
+
+/* ---------- picker ---------- */
+var cur=MODELS.length-1;
+var picker=document.getElementById("picker");
+var btns=MODELS.map(function(m,i){
+  var b=document.createElement("button");
+  b.type="button"; b.className="pick"; b.setAttribute("aria-pressed", i===cur?"true":"false");
+  b.innerHTML=m.name+"<small>"+m.sub+"</small>";
+  b.addEventListener("click",function(){select(i)});
+  picker.appendChild(b); return b;
+});
+
+/* ---------- matrix ---------- */
+var mx=document.getElementById("mxBody");
+MATRIX.forEach(function(r){
+  var tr=document.createElement("tr");
+  var h='<th scope="row">'+r.m+'<small>'+r.s+'</small></th>';
+  r.c.forEach(function(c){
+    if(!c){h+='<td class="no" aria-label="not measured">—</td>';return;}
+    var lo=c[1]/70*100, w=Math.max((c[2]-c[1])/70*100,0);
+    h+='<td>'+c[0]+(c[3]?'<sup>'+c[3]+'</sup>':'')+'<span class="rb" aria-hidden="true"><i style="left:'+lo.toFixed(2)+'%;width:'+w.toFixed(2)+'%"></i></span></td>';
+  });
+  tr.innerHTML=h; mx.appendChild(tr);
+});
+document.getElementById("mxNotes").innerHTML=NOTES.map(function(n){return '<li><sup>'+n[0]+'</sup>'+n[1]+'</li>'}).join("");
+
+/* ---------- gauge ---------- */
+function fmt(n){return n>=100?String(Math.round(n)):(Math.round(n*100)/100).toString()}
+function gauge(m){
+  var r=m.disk/m.mem;
+  document.getElementById("gName").textContent=m.name+" "+m.sub;
+  document.getElementById("gRatio").innerHTML="~"+(r>=20?Math.round(r):r.toFixed(1))+"<em>×</em>";
+  document.getElementById("gDisk").textContent=fmt(m.disk)+" GB";
+  document.getElementById("gMem").textContent=m.memNote;
+  document.getElementById("sMem").textContent=m.memSub;
+  document.getElementById("fMem").style.width=(m.mem/m.disk*100)+"%";
+  var rf=document.getElementById("rowFast");
+  if(m.fast){
+    rf.style.display="";
+    document.getElementById("gFast").textContent=m.fast.label;
+    document.getElementById("sFast").textContent=m.fast.sub;
+    document.getElementById("fFast").style.width=(m.fast.v/m.disk*100)+"%";
+  } else {rf.style.display="none";}
+  document.getElementById("gAct").textContent=m.act+"B of "+m.total+"B";
+  document.getElementById("fAct").style.width=(m.act/m.total*100)+"%";
+}
+
+/* ---------- strip chart ---------- */
+var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var small=window.matchMedia("(max-width: 760px)").matches;
+var still=reduce||small;
+var cv=document.getElementById("strip"), box=document.getElementById("cbox");
+var dpr=Math.min(window.devicePixelRatio||1,2);
+var CW=Math.max(280,Math.floor(box.clientWidth)||600);
+var CH=small?200:230;
+cv.width=CW*dpr; cv.height=CH*dpr; cv.style.width=CW+"px"; cv.style.height=CH+"px";
+var ctx=cv.getContext("2d"); ctx.scale(dpr,dpr);
+var css=getComputedStyle(document.documentElement);
+var C={sig:css.getPropertyValue("--signal").trim(),sigInk:css.getPropertyValue("--signal-ink").trim(),
+  ink:css.getPropertyValue("--ink").trim(),ink2:css.getPropertyValue("--ink2").trim(),
+  hair:css.getPropertyValue("--hair").trim(),hair2:css.getPropertyValue("--hair2").trim(),wash:css.getPropertyValue("--signal-wash").trim()};
+var FONT='12px "JetBrains Mono",ui-monospace,Menlo,monospace';
+var PAD={l:34,r:34,t:12,b:24};
+var PW=CW-PAD.l-PAD.r, PH=CH-PAD.t-PAD.b;
+var STEP=small?4:3, INTERVAL=75;
+var NPTS=Math.ceil(PW/STEP)+3;
+
+function rng(seed){var s=seed>>>0;return function(){s=(s+0x6D2B79F5)>>>0;var t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+var rand=rng(20261111);
+var state=null, last=0, acc=0, running=false, visible=true, lastNow=0;
+
+function advance(lane){
+  lane.u+= (0.5-lane.u)*0.07+(rand()-0.5)*0.42;
+  if(lane.u<0)lane.u=0.02+rand()*0.05; if(lane.u>1)lane.u=0.98-rand()*0.05;
+  var v=lane.lo+lane.u*(lane.hi-lane.lo);
+  lane.hist.push(v); if(lane.hist.length>NPTS)lane.hist.shift();
+  lane.now=v;
+}
+function build(m){
+  rand=rng(1000+cur*77);
+  state=m.lanes.map(function(l){var o={lo:l.lo,hi:l.hi,u:rand(),hist:[],now:l.lo};for(var i=0;i<NPTS;i++)advance(o);return o;});
+}
+function Y(m,v){return PAD.t+(1-v/m.yMax)*PH}
+function draw(frac){
+  var m=MODELS[cur];
+  ctx.clearRect(0,0,CW,CH);
+  ctx.font=FONT; ctx.textBaseline="middle";
+  // grid + y labels
+  ctx.lineWidth=1;
+  for(var v=0;v<=m.yMax+0.001;v+=m.step){
+    var y=Math.round(Y(m,v))+.5;
+    ctx.strokeStyle=v===0?C.ink:C.hair; ctx.beginPath(); ctx.moveTo(PAD.l,y); ctx.lineTo(CW-PAD.r,y); ctx.stroke();
+    ctx.fillStyle=C.ink2; ctx.textAlign="right"; ctx.fillText(String(v),PAD.l-6,y);
+  }
+  // vertical time ticks (move with data)
+  var shift=(frac||0)*STEP;
+  ctx.strokeStyle=C.hair2;
+  for(var k=0;k<NPTS;k+=20){
+    var x=Math.round(CW-PAD.r-(k*STEP)-shift)+.5;
+    if(x>PAD.l&&x<CW-PAD.r){ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+PH);ctx.stroke();}
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(PAD.l,PAD.t-2,PW+1,PH+4); ctx.clip();
+  // bands
+  state.forEach(function(s){
+    var y1=Y(m,s.hi), y2=Y(m,s.lo), h=Math.max(y2-y1,3);
+    ctx.fillStyle=C.wash; ctx.fillRect(PAD.l,y1,PW,h);
+    ctx.strokeStyle=C.sig; ctx.globalAlpha=.55; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.l,Math.round(y1)+.5); ctx.lineTo(CW-PAD.r,Math.round(y1)+.5);
+    ctx.moveTo(PAD.l,Math.round(y1+h)+.5); ctx.lineTo(CW-PAD.r,Math.round(y1+h)+.5); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  });
+  // traces
+  ctx.lineJoin="round"; ctx.lineWidth=1.75; ctx.strokeStyle=C.sig;
+  state.forEach(function(s){
+    ctx.beginPath();
+    var n=s.hist.length;
+    for(var i=0;i<n;i++){
+      var x=CW-PAD.r-(n-1-i)*STEP-shift, y=Y(m,s.hist[i]);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.lineTo(CW-PAD.r,Y(m,s.hist[n-1]));
+    ctx.stroke();
+  });
+  ctx.restore();
+  // head dots
+  state.forEach(function(s){
+    var y=Y(m,s.hist[s.hist.length-1]);
+    ctx.fillStyle=C.sig; ctx.beginPath(); ctx.arc(CW-PAD.r,y,3.5,0,6.283); ctx.fill();
+  });
+  // tags at band midline, de-overlapped
+  var tags=state.map(function(s,i){return {i:i,y:Y(m,(s.lo+s.hi)/2)}}).sort(function(a,b){return a.y-b.y});
+  for(var t=1;t<tags.length;t++){ if(tags[t].y-tags[t-1].y<17)tags[t].y=tags[t-1].y+17; }
+  tags.forEach(function(g){
+    var x=CW-PAD.r+9, y=g.y-9;
+    ctx.fillStyle=C.sig; ctx.beginPath(); ctx.roundRect?ctx.roundRect(x,y,18,18,4):ctx.rect(x,y,18,18); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font="700 12px "+FONT.split("12px ")[1]; ctx.textAlign="center"; ctx.fillText(String(g.i+1),x+9,y+9.5);
+  });
+  ctx.font=FONT; ctx.fillStyle=C.ink2; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+  ctx.fillText("tok/s",4,CH-6);
+  ctx.textAlign="right"; ctx.fillText(still?"time →  (Illustration)":"time →  (Illustration, simulated)",CW-PAD.r,CH-6);
+  ctx.textBaseline="middle";
+}
+function legend(m){
+  var el=document.getElementById("legend");
+  el.innerHTML=m.lanes.map(function(l,i){
+    var rg=(l.lo===l.hi?fmt(l.lo):l.lo+"–"+l.hi);
+    return '<li><span class="tag">'+(i+1)+'</span><span class="nm">'+l.n+(l.d?'<small>'+l.d+'</small>':'')+'</span><span class="rg">'+rg+'</span><span class="nw" data-now="'+i+'" aria-hidden="true">'+(still?'':'')+'</span></li>';
+  }).join("");
+  cv.setAttribute("aria-label","Illustration of decode speed for "+m.name+" "+m.sub+": "+m.lanes.map(function(l){return l.n+" "+l.lo+" to "+l.hi+" tokens per second"}).join("; "));
+}
+function updNow(){
+  if(still)return;
+  var els=document.querySelectorAll("[data-now]");
+  for(var i=0;i<els.length;i++){var s=state[+els[i].getAttribute("data-now")]; if(s)els[i].textContent="now "+s.now.toFixed(1);}
+}
+function frame(now){
+  if(!running)return;
+  if(!lastNow)lastNow=now;
+  var dt=Math.min(now-lastNow,200); lastNow=now; acc+=dt;
+  while(acc>=INTERVAL){acc-=INTERVAL; state.forEach(advance);}
+  draw(acc/INTERVAL);
+  requestAnimationFrame(frame);
+}
+var nowTimer=null;
+function start(){
+  if(still||running||!visible||document.hidden)return;
+  running=true; lastNow=0; requestAnimationFrame(frame);
+  if(!nowTimer)nowTimer=setInterval(updNow,300);
+}
+function stop(){running=false; if(nowTimer){clearInterval(nowTimer);nowTimer=null}}
+
+function select(i){
+  cur=i; var m=MODELS[i];
+  btns.forEach(function(b,j){b.setAttribute("aria-pressed",j===i?"true":"false")});
+  build(m); legend(m); gauge(m); acc=0; draw(0); updNow();
+}
+
+select(cur);
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){draw(0)})}
+if(!still){
+  if("IntersectionObserver" in window){
+    new IntersectionObserver(function(e){visible=e[0].isIntersecting; visible?start():stop()},{threshold:0.05}).observe(box);
+  }
+  document.addEventListener("visibilitychange",function(){document.hidden?stop():start()});
+  start();
+}
+})();
+</script>
+</body>
+</html>

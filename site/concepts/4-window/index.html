@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mference — a 175 GB model in a 2.36 GB window</title>
+<meta name="description" content="Mference keeps a 2.36 GB window of a 175 GB model in memory on a Mac and streams the rest from SSD, expert by expert.">
+<link rel="icon" href="assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#efebe1; --paper2:#e5e0d2; --ink:#17150f; --mute:#58534a;
+  --line:rgba(23,21,15,.22); --sig:#ff4a12; --sigtext:#b8340a;
+  --L:max(16px,calc((100vw - 1360px)/2));
+  --nav:56px; --rulerW:56px; --stripW:280px; --railW:280px;
+  --disp:'Archivo','Arial Narrow','Helvetica Neue Condensed',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{margin:0;padding-top:var(--nav);background:var(--paper);color:var(--ink);font:400 17px/1.5 'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sigtext);outline-offset:3px}
+.num{font-family:var(--disp);font-stretch:62%;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:.86}
+.mono{font:500 12px/1.35 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+
+/* nav */
+nav{position:fixed;inset:0 0 auto 0;height:var(--nav);z-index:60;background:var(--paper);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 var(--L)}
+.wm{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 22px/1 'Archivo',sans-serif;letter-spacing:-.02em}
+.wm img{width:30px;height:30px;border-radius:7px;display:block}
+.btn{display:inline-block;background:var(--ink);color:var(--paper);text-decoration:none;font:700 15px/1 'Archivo',sans-serif;padding:12px 18px;border-radius:8px;border:2px solid var(--ink)}
+.btn:hover{background:var(--sig);border-color:var(--sig);color:var(--ink)}
+
+/* scene: 1 viewport pinned + 0.5 viewport of scroll */
+#stream{position:relative;height:calc(150vh - var(--nav))}
+#stage{position:sticky;top:var(--nav);height:calc(100vh - var(--nav));padding:20px var(--L) 14px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto var(--railW);grid-template-rows:minmax(0,1fr) auto;column-gap:40px}
+.txt{grid-column:1;grid-row:1;align-self:center;min-width:0}
+.txt .mono{color:var(--mute);margin:0 0 12px}
+h1{margin:0;font-family:var(--disp);font-stretch:62%;font-weight:800;font-size:clamp(44px,5.9vw,88px);line-height:.88;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
+h1 .s{color:var(--sigtext)}
+.lead{margin:20px 0 0;max-width:30em;font-size:19px;line-height:1.35}
+
+.sw{grid-column:2;grid-row:1;display:flex;min-height:0}
+.ruler{position:relative;width:var(--rulerW);flex:none}
+.ruler b{position:absolute;right:0;width:14px;height:1px;background:var(--ink)}
+.ruler span{position:absolute;right:20px;transform:translateY(-50%);font:600 12px/1 var(--mono);color:var(--ink)}
+.sc{position:relative;width:var(--stripW);flex:none}
+.strip{position:absolute;inset:0;overflow:hidden;border-left:1px solid var(--ink);border-right:1px solid var(--ink)}
+.strip i{position:absolute;display:block;border:1px solid rgba(23,21,15,.38);
+  background:repeating-linear-gradient(135deg,rgba(23,21,15,.5) 0 1px,transparent 1px 5px);opacity:.7}
+#win{position:absolute;left:-3px;right:-3px;top:0;overflow:hidden;z-index:5;border:2px solid var(--sig);background:rgba(255,74,18,.1);will-change:transform;pointer-events:none}
+#lit{position:absolute;left:1px;right:1px;top:0;will-change:transform}
+#lit i{border-color:var(--sig);background-color:rgba(255,74,18,.34);opacity:1;transition:background-color .3s;
+  background-image:repeating-linear-gradient(135deg,rgba(23,21,15,.7) 0 1px,transparent 1px 5px)}
+#lit i.hot{background-color:rgba(255,74,18,.96);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 1px,transparent 1px 5px)}
+
+#rail{grid-column:3;grid-row:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0}
+#rail .k{margin:0 0 6px;color:var(--mute)}
+#rail .v{display:block;font-size:64px}
+#rail .v small{font:700 18px/1 'Archivo',sans-serif;font-stretch:100%;letter-spacing:0;margin-left:6px;color:var(--mute)}
+.r-mem{border-top:3px solid var(--sig);padding-top:10px}
+.r-mem .k{color:var(--sigtext)}
+.r-mem .v{font-size:116px}
+.r-total{border-top:2px solid var(--ink);padding-top:8px;display:flex;justify-content:space-between;font:600 13px/1.4 var(--mono)}
+.note{grid-column:1 / -1;grid-row:2;margin:10px 0 0;color:var(--mute)}
+
+/* breakdown */
+#rows{border-top:2px solid var(--ink);padding:26px var(--L) 34px;background:var(--paper)}
+#rows .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 24px;margin-bottom:16px}
+#rows h2{margin:0;font:800 clamp(30px,3.4vw,46px)/.95 var(--disp);font-stretch:62%;letter-spacing:-.01em}
+#rows .hd .mono{color:var(--mute);margin:0}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--ink)}
+.card{padding:14px 18px 14px 0;border-right:1px solid var(--line);margin-right:18px}
+.card:last-child{border-right:0;margin-right:0}
+.card h3{margin:0;font:800 34px/.9 var(--disp);font-stretch:62%}
+.card .sub{margin:4px 0 12px;color:var(--mute);font:500 13px/1.3 'Archivo',sans-serif}
+.m{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+.m .mono{color:var(--mute)}
+.m b{font:800 26px/1 var(--disp);font-stretch:62%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m b small{font:700 12px/1 'Archivo',sans-serif;font-stretch:100%;margin-left:4px;color:var(--mute)}
+.m.hot b{color:var(--sigtext)}
+.bar{height:10px;border:1px solid var(--ink);background:repeating-linear-gradient(135deg,rgba(23,21,15,.45) 0 1px,transparent 1px 4px);margin:6px 0 0}
+.bar i{display:block;height:100%;background:var(--sig);border-right:1px solid var(--ink)}
+.card .hw{margin:8px 0 0;color:var(--mute)}
+
+#lim{padding:12px var(--L);background:var(--ink);color:#d7d2c4;font:500 13px/1.4 'Archivo',sans-serif}
+#end{background:var(--ink);color:var(--paper);padding:14px var(--L) 24px}
+#end footer{padding-top:14px;border-top:1px solid rgba(239,235,225,.3);display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between;font-size:13px;color:#bdb7a7}
+#end footer a{color:var(--paper)}
+#end .wm{color:var(--paper)}
+#end :focus-visible{outline-color:var(--sig)}
+
+@media (max-width:1100px){
+  :root{--stripW:200px;--railW:220px}
+  #rail .v{font-size:52px}.r-mem .v{font-size:92px}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card:nth-child(2){border-right:0;margin-right:0}
+  .card:nth-child(n+3){border-top:1px solid var(--ink)}
+}
+@media (max-width:760px){
+  :root{--L:14px;--rulerW:30px;--stripW:76px;--railW:1fr}
+  body{font-size:16px}
+  .wm{font-size:19px}.wm img{width:26px;height:26px}
+  nav .btn{font-size:13px;padding:10px 12px}
+  #stage{grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;column-gap:16px;padding-top:14px}
+  .txt{grid-column:1 / -1;grid-row:1;align-self:start;margin-bottom:12px}
+  .txt .mono{margin-bottom:8px}
+  h1{font-size:clamp(40px,12.4vw,56px)}
+  .lead{font-size:16px;margin-top:12px}
+  .sw{grid-column:1;grid-row:2}
+  #rail{grid-column:2;grid-row:2}
+  .note{grid-row:3}
+  .ruler span{right:16px}.ruler b{width:10px}
+  #rail .v{font-size:34px}#rail .v small{font-size:13px}
+  .r-mem .v{font-size:58px}
+  #rail .k{font-size:12px}
+  .r-total{font-size:12px}
+  .cards{grid-template-columns:1fr}
+  .card,.card:nth-child(2){border-right:0;margin-right:0;padding-right:0}
+  .card:nth-child(n+2){border-top:1px solid var(--ink)}
+}
+@media (max-height:700px) and (min-width:761px){
+  .r-mem .v{font-size:84px}#rail .v{font-size:48px}
+  .lead{font-size:17px;margin-top:12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<nav aria-label="Main">
+  <a class="wm" href="#stream"><img src="assets/icon.png" alt="" width="30" height="30">Mference</a>
+  <a class="btn" href="https://github.com/NeelM0906/Mference/releases">Get the source release</a>
+</nav>
+
+<main>
+<section id="stream" aria-label="A 2.36 GB window crossing a 175 GB install">
+  <div id="stage">
+    <div class="txt">
+      <p class="mono">Qwen3.8-Flash-Next · 180B parameters · 256 GB M3 Ultra</p>
+      <h1><span>175 GB</span> on disk.<br><span class="s">2.36 GB</span> in memory.</h1>
+      <p class="lead">A Mac keeps a 2.36 GB window in memory and streams the rest from SSD.</p>
+    </div>
+
+    <div class="sw" aria-hidden="true">
+      <div class="ruler" id="ruler"></div>
+      <div class="sc" id="sc">
+        <div class="strip" id="base"></div>
+        <div id="win"><div id="lit"></div></div>
+      </div>
+    </div>
+
+    <aside id="rail" aria-label="Live tally of the 175 GB install">
+      <div class="r r-behind"><p class="mono k">Behind the window</p><span class="num v"><span id="vBehind">0.00</span><small>GB</small></span></div>
+      <div class="r r-mem"><p class="mono k">In the window = in memory</p><span class="num v"><span>2.36</span><small>GB</small></span></div>
+      <div class="r r-ahead"><p class="mono k">Ahead of the window</p><span class="num v"><span id="vAhead">172.64</span><small>GB</small></span></div>
+      <div class="r r-total"><span>Total</span><b>175.00 GB</b></div>
+    </aside>
+
+    <p class="note mono">Rail: true scale · Blocks and window height: illustration</p>
+  </div>
+</section>
+
+<section id="rows" aria-labelledby="rowsH">
+  <div class="hd">
+    <h2 id="rowsH">Four families, one method.</h2>
+    <p class="mono">Mference README · 256 GB M3 Ultra · not like-for-like</p>
+  </div>
+  <div class="cards">
+    <article class="card">
+      <h3>284B</h3><p class="sub">DeepSeek-V4-Flash · 13B active</p>
+      <div class="m hot"><span class="mono">Memory</span><b>~5.7<small>GB</small></b></div>
+      <div class="m"><span class="mono">Disk</span><b>~91<small>GB</small></b></div>
+      <div class="m"><span class="mono">Decode</span><b>5.6–6.7<small>tok/s</small></b></div>
+      <div class="bar" title="Memory ÷ disk, computed"><i style="width:6.3%"></i></div>
+      <p class="mono hw">Memory ÷ disk 6.3% · M3 Ultra</p>
+    </article>
+    <article class="card">
+      <h3>276B</h3><p class="sub">Inkling-Small · 12B active</p>
+      <div class="m hot"><span class="mono">Memory</span><b>~8.95<small>GB</small></b></div>
+      <div class="m"><span class="mono">Disk</span><b>~148<small>GB</small></b></div>
+      <div class="m"><span class="mono">Decode</span><b>5.3–7.1<small>tok/s</small></b></div>
+      <div class="bar" title="Memory ÷ disk, computed"><i style="width:6.0%"></i></div>
+      <p class="mono hw">Memory ÷ disk 6.0% · M3 Ultra</p>
+    </article>
+    <article class="card">
+      <h3>180B</h3><p class="sub">Qwen3.8-Flash-Next · 3.5B active</p>
+      <div class="m hot"><span class="mono">Memory</span><b>~2.36<small>GB</small></b></div>
+      <div class="m"><span class="mono">Disk</span><b>~175<small>GB</small></b></div>
+      <div class="m"><span class="mono">Decode</span><b>11.11–11.81<small>tok/s</small></b></div>
+      <div class="bar" title="Memory ÷ disk, computed"><i style="width:1.35%"></i></div>
+      <p class="mono hw">Memory ÷ disk 1.3% · 16 slots · M3 Ultra</p>
+    </article>
+    <article class="card">
+      <h3>35B</h3><p class="sub">Qwen 3.6 · 3B active</p>
+      <div class="m hot"><span class="mono">Memory</span><b>6.8<small>GB</small></b></div>
+      <div class="m"><span class="mono">Disk</span><b>~19.6<small>GB</small></b></div>
+      <div class="m"><span class="mono">Decode</span><b>36.1–42.2<small>tok/s</small></b></div>
+      <div class="bar" title="Memory ÷ disk, computed"><i style="width:34.7%"></i></div>
+      <p class="mono hw">Memory ÷ disk 35% · 96 slots · M3 Ultra</p>
+    </article>
+  </div>
+</section>
+</main>
+
+<div id="lim">Limits: source release, not a signed app · no model weights bundled · server and UI on loopback only · macOS 15+ on Apple Silicon.</div>
+<section id="end">
+  <footer>
+    <a class="wm" href="#stream"><img src="assets/icon.png" alt="" width="30" height="30">Mference</a>
+    <span>MIT license · Built on TurboFieldfare by Andrey Mikhaylov (Apache-2.0 portions)</span>
+    <span><a href="https://github.com/NeelM0906/Mference">Repository</a> · <a href="https://github.com/NeelM0906/Mference#readme">README</a></span>
+  </footer>
+</section>
+
+<noscript><p style="position:fixed;bottom:0;left:0;right:0;background:var(--paper);padding:10px;margin:0;z-index:99">The strip and the live tally need JavaScript. The figures on this page are complete without it.</p></noscript>
+
+<script>
+(function(){
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var TOTAL = 175, FRAME = 2.36, TRAVEL_GB = TOTAL - FRAME;
+  var $ = function(id){ return document.getElementById(id); };
+  var sc = $('sc'), win = $('win'), lit = $('lit'), base = $('base');
+  var stream = $('stream'), stage = $('stage');
+  var vB = $('vBehind'), vA = $('vAhead');
+  var H = 0, WH = 0, blocks = [], S = 0, ticking = false;
+
+  function rng(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  // Illustration: seeded blocks so every visitor sees the same strip.
+  function build(){
+    var r = rng(4172);
+    H = sc.clientHeight; var W = sc.clientWidth;
+    WH = Math.max(46, Math.round(H * 0.12));
+    win.style.height = WH + 'px';
+    var lanes = W > 120 ? 3 : 2, gap = 2, laneW = W / lanes, html = '';
+    blocks = [];
+    for (var l = 0; l < lanes; l++) {
+      var y = r() * 8;
+      while (y < H) {
+        var h = Math.max(5, 5 + Math.pow(r(), 1.6) * 20);
+        if (y + h > H) h = H - y;
+        if (h > 2) {
+          var w = laneW - gap - (r() < .3 ? Math.round(r() * laneW * .35) : 0);
+          blocks.push([y, y + h]);
+          html += '<i style="left:' + (l * laneW).toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px;height:' + Math.max(2, h - gap).toFixed(1) + 'px"></i>';
+        }
+        y += h;
+      }
+    }
+    base.innerHTML = html; lit.innerHTML = html;
+    lit.style.height = H + 'px';
+    // Ruler: every 25 GB, true positions along the strip
+    var rl = '';
+    for (var g = 0; g <= TOTAL; g += 25) rl += '<b style="top:' + (g / TOTAL * H).toFixed(1) + 'px"></b><span style="top:' + (g / TOTAL * H).toFixed(1) + 'px">' + g + '</span>';
+    $('ruler').innerHTML = rl;
+    update();
+  }
+
+  function update(){
+    ticking = false;
+    var travel = Math.max(1, stream.offsetHeight - stage.offsetHeight);
+    var p = Math.min(1, Math.max(0, (window.scrollY || 0) / travel));
+    var t = p * (H - WH);
+    S = t;
+    win.style.transform = 'translate3d(0,' + t.toFixed(1) + 'px,0)';
+    lit.style.transform = 'translate3d(0,' + (-t - 2).toFixed(1) + 'px,0)';
+    var cents = Math.round(p * TRAVEL_GB * 100);
+    vB.textContent = (cents / 100).toFixed(2);
+    vA.textContent = ((Math.round(TRAVEL_GB * 100) - cents) / 100).toFixed(2);
+  }
+  function onScroll(){ if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+  addEventListener('scroll', onScroll, { passive: true });
+  var rt; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(build, 150); });
+  build();
+
+  // Illustration: a few blocks in the window glow, as experts are picked for a token
+  if (!reduce) {
+    var hot = [], kids = lit.children;
+    setInterval(function(){
+      if (document.hidden) return;
+      hot.forEach(function(n){ n.classList.remove('hot'); }); hot = [];
+      var inside = [];
+      for (var i = 0; i < blocks.length; i++) if (blocks[i][0] < S + WH && blocks[i][1] > S) inside.push(i);
+      for (var n = 0; n < 4 && inside.length; n++) {
+        var pick = inside.splice(Math.floor(Math.random() * inside.length), 1)[0];
+        var el = kids[pick]; if (el) { el.classList.add('hot'); hot.push(el); }
+      }
+    }, 650);
+  }
+})();
+</script>
+</body>
+</html>
