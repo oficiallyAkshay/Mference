@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mference onboarding</title>
+<style>
+/* Layout: matches the existing Mference site (add-landing-site branch): warm white, ink, one indigo signal, SF display, heavy tight headlines.
+   Part 1: a playable onboarding window on a desktop, 6 steps, each one moving picture + at most 6 words + one number.
+   Part 2: the existing site page drawn as it is, with the new blocks inserted and marked. Light only, like the site. */
+:root{
+  --bg:#fbfbf9; --ink:#0e0f12; --ink2:#5d6068; --hair:rgba(14,15,18,.13); --sig:#4f4ee0; --sig-soft:rgba(79,78,224,.10);
+  --off:rgba(14,15,18,.10); --grey:#9a9ca4; --ok:#1f9d55;
+  --wall-a:#c9c8f6; --wall-b:#f4dcc0; --wall-c:#cfe9e1; --wall-d:#eef0f3;
+  --glass:rgba(251,251,249,.72); --rim:rgba(255,255,255,.85); --edge:rgba(14,15,18,.10);
+  --new:#e8590c; --new-soft:rgba(232,89,12,.08);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:36px 72px}
+main{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:64px}
+h1,h2{margin:0;letter-spacing:-.035em;text-wrap:balance}
+h1{font-size:clamp(36px,6vw,64px);line-height:1;font-weight:720}
+h2{font-size:clamp(26px,3.4vw,38px);line-height:1.05;font-weight:700}
+p{margin:0;max-width:62ch}
+.k{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.sub{color:var(--ink2);font-size:18px}
+section,header{display:flex;flex-direction:column;gap:16px}
+
+/* desktop + app window */
+.desk{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--hair);min-width:0;
+  background:radial-gradient(55% 75% at 12% 15%,var(--wall-a) 0%,transparent 70%),radial-gradient(50% 70% at 88% 25%,var(--wall-b) 0%,transparent 70%),radial-gradient(60% 70% at 55% 105%,var(--wall-c) 0%,transparent 70%),var(--wall-d)}
+.mbar{height:28px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;font-size:12.5px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.25)}
+.mbar .me{display:flex;align-items:center;padding:2px 8px;border-radius:999px;background:var(--glass);box-shadow:inset 0 0 0 .5px var(--rim);transition:box-shadow .4s,background .4s}
+.mbar .me.ping{background:var(--sig);color:#fff;box-shadow:0 0 0 6px var(--sig-soft)}
+.mbar svg{width:16px;height:16px}
+.stagewrap{display:flex;justify-content:center;padding:28px 18px 34px;min-height:720px;align-items:flex-start}
+.win{position:relative;width:100%;max-width:1040px;height:650px;border-radius:24px;overflow:hidden;display:grid;grid-template-columns:236px minmax(0,1fr);
+  background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);
+  box-shadow:inset 0 1px 0 var(--rim),inset 0 0 0 .5px var(--rim),0 30px 70px rgba(14,15,18,.20);
+  transition:transform .9s cubic-bezier(.6,0,.2,1),opacity .9s,border-radius .9s;transform-origin:calc(100% - 110px) -40px}
+.win.fly{transform:scale(.04) translate(0,0);opacity:0;border-radius:200px}
+.tl{position:absolute;top:14px;left:16px;display:flex;gap:7px;z-index:5}
+.tl i{width:12px;height:12px;border-radius:50%;display:block}
+.tl i:nth-child(1){background:#ff5f57}.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.side{background:rgba(255,255,255,.38);box-shadow:inset -.5px 0 0 var(--edge);padding:54px 14px 18px;display:flex;flex-direction:column;gap:4px}
+.side .app{display:flex;align-items:center;gap:10px;padding:0 10px 16px;font-weight:700;letter-spacing:-.02em;font-size:16px}
+.side .app i{width:30px;height:30px;border-radius:8px;background:linear-gradient(150deg,#f4f4f6,#c3c6ce);display:grid;place-items:center;color:#444;font-style:normal}
+.side .app i svg{width:16px;height:16px}
+.side button{font:inherit;font-size:14px;font-weight:550;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:8px;text-align:left;border:0;background:none;color:var(--ink2);padding:8px 10px;border-radius:10px;cursor:pointer}
+.side button .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--off);color:var(--ink2)}
+.side button.done .n{background:var(--ok);color:#fff}
+.side button[aria-current=true]{background:rgba(255,255,255,.8);color:var(--ink);box-shadow:inset 0 0 0 .5px var(--rim),0 1px 3px rgba(14,15,18,.08)}
+.side button[aria-current=true] .n{background:var(--sig);color:#fff}
+.side .fill{flex:1}
+.side .ver{font-size:12px;color:var(--ink2);padding:0 10px}
+.main{position:relative;min-width:0}
+.ttl{position:absolute;top:13px;left:0;right:0;text-align:center;font-size:13px;font-weight:600;color:var(--ink2)}
+.scene{position:absolute;inset:0;padding:64px 56px 92px;display:flex;flex-direction:column;gap:18px;opacity:0;transform:translateY(12px) scale(.985);transition:opacity .5s,transform .6s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.scene.on{opacity:1;transform:none;pointer-events:auto}
+.scene .t{font-size:clamp(30px,4.6vw,52px);font-weight:720;letter-spacing:-.04em;line-height:1.02;max-width:12em}
+.big{font-size:clamp(34px,6vw,64px);font-weight:720;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+.big .o{color:var(--grey);text-decoration:line-through;text-decoration-color:rgba(14,15,18,.3)}
+.big .n{color:var(--sig)}
+.small{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.foot{position:absolute;left:56px;right:56px;bottom:26px;display:flex;justify-content:space-between;align-items:center;z-index:6}
+.dots{display:flex;gap:6px}
+.dots button{width:8px;height:8px;border-radius:4px;border:0;background:var(--off);padding:0;cursor:pointer;transition:width .3s,background .3s}
+.dots button[aria-current=true]{width:24px;background:var(--ink)}
+.go{font:inherit;font-weight:600;font-size:15px;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:11px 20px;cursor:pointer;transition:transform .15s}
+.go:hover{transform:translateY(-1px)}
+.skip{font:inherit;font-size:14px;background:none;border:0;color:var(--ink2);cursor:pointer}
+button:focus-visible{outline:2px solid var(--sig);outline-offset:3px}
+/* scene pieces */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:end}
+.pair canvas,.dl canvas,.ans canvas{display:block;width:100%}
+.cap{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-weight:600;font-size:14px}
+.mem{position:relative;height:150px;border:2px solid var(--ink);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.5)}
+.mem .lab{position:absolute;right:12px;top:8px;font-weight:700;font-size:14px}
+.chips{position:absolute;inset:34px 12px 12px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.chip{padding:6px 10px;border-radius:10px;font-weight:600;font-size:13px;background:var(--sig);color:#fff;transform:translateY(-140px);opacity:0;transition:transform .55s cubic-bezier(.3,1.4,.5,1),opacity .3s}
+.chip.in{transform:none;opacity:1}
+.chip.no{background:var(--off);color:var(--ink2);text-decoration:line-through}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;perspective:900px}
+.card{border-radius:18px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px var(--rim),0 10px 26px rgba(14,15,18,.10);padding:14px;display:flex;flex-direction:column;gap:8px;transform-style:preserve-3d;transition:transform .25s,box-shadow .25s;cursor:pointer}
+.card.sel{box-shadow:0 0 0 2.5px var(--sig),0 16px 34px rgba(79,78,224,.25)}
+.card .nm{font-weight:700;letter-spacing:-.02em;font-size:16px}
+.card .sp{font-size:30px;font-weight:720;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.card .sp small{font-size:13px;font-weight:500;color:var(--ink2);letter-spacing:0}
+.card canvas{width:100%;display:block}
+.dl{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:center}
+.ans{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:20px;align-items:start}
+.bub{justify-self:end;background:var(--ink);color:#fff;border-radius:18px 18px 4px 18px;padding:9px 14px;font-weight:500;max-width:90%}
+.reply{background:rgba(255,255,255,.8);border-radius:18px 18px 18px 4px;padding:12px 14px;min-height:92px;box-shadow:inset 0 0 0 .5px var(--rim);font-size:15px}
+.reply .cur{display:inline-block;width:8px;height:16px;background:var(--sig);vertical-align:-3px;margin-left:2px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.meter{display:flex;flex-direction:column;gap:2px}
+.toggle{display:flex;align-items:center;gap:12px;font-weight:600}
+.sw{width:42px;height:26px;border-radius:13px;background:var(--off);position:relative;border:0;cursor:pointer;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.sw[aria-checked=true]{background:var(--ok)} .sw[aria-checked=true]::after{left:19px}
+.under{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.legend{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.legend div{font-size:13px;color:var(--ink2)}
+.legend b{display:block;color:var(--ink);font-size:14px}
+
+/* website mock */
+.site{border:1px solid var(--hair);border-radius:18px;overflow:hidden;background:var(--bg)}
+.sbar{display:flex;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--hair);font-size:12px;color:var(--ink2);background:#f2f2ef}
+.sbar .u{flex:1;min-width:0;background:#fff;border:1px solid var(--hair);border-radius:999px;padding:3px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk{position:relative;padding:22px 28px;border-bottom:1px solid var(--hair)}
+.blk:last-child{border-bottom:0}
+.blk.new{background:var(--new-soft);box-shadow:inset 3px 0 0 var(--new)}
+.badge{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--hair);color:var(--ink2);background:#fff}
+.blk.new .badge{color:#fff;background:var(--new);border-color:var(--new)}
+.snav{display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:17px;letter-spacing:-.02em}
+.brand i{width:24px;height:24px;border-radius:7px;background:linear-gradient(150deg,#f4f4f6,#c9ccd3);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px;color:#555}
+.sbtn{background:var(--ink);color:#fff;font-weight:600;font-size:14px;padding:9px 16px;border-radius:11px;white-space:nowrap}
+.sbtn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.sh1{font-size:clamp(32px,5.5vw,58px);font-weight:720;letter-spacing:-.045em;line-height:.98;max-width:10em}
+.mini2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
+.mini2 canvas{width:100%;display:block}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:11px;overflow:hidden;margin-top:8px}
+.seg span{padding:7px 13px;font-weight:650;font-size:14px;border-right:1.5px solid var(--ink)}
+.seg span:last-child{border-right:0}
+.seg span.on{background:var(--ink);color:#fff}
+.rowsx{display:grid;grid-template-columns:1.3fr 1fr .8fr;gap:10px;font-size:14px;margin-top:10px}
+.rowsx span{padding:7px 0;border-top:1px solid var(--hair)}
+.rowsx .b{color:var(--sig);font-weight:650}
+.rowsx .a{color:var(--grey);text-decoration:line-through}
+.strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:10px}
+.fr{border-radius:16px;overflow:hidden;background:radial-gradient(70% 90% at 20% 10%,var(--wall-a),transparent 70%),radial-gradient(60% 80% at 90% 30%,var(--wall-b),transparent 70%),var(--wall-d);padding:12px;aspect-ratio:4/3;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;position:relative}
+.fr .w{position:absolute;inset:14px 14px 46px;border-radius:12px;background:var(--glass);box-shadow:inset 0 0 0 .5px var(--rim),0 8px 20px rgba(14,15,18,.12);display:grid;place-items:center;font-weight:720;letter-spacing:-.03em;font-size:clamp(16px,2.2vw,22px)}
+.fr b{font-size:15px;letter-spacing:-.02em}
+.fr canvas{width:72%}
+.demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center;margin-top:10px}
+.player{border-radius:16px;background:#fff;box-shadow:0 0 0 1px var(--hair);padding:14px;display:flex;flex-direction:column;gap:10px}
+.scrub{height:4px;border-radius:2px;background:var(--off);overflow:hidden}
+.scrub i{display:block;height:100%;width:0;background:var(--sig)}
+.tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;background:#fff}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--hair);vertical-align:top}
+th{font-size:11.5px;font-weight:600;color:var(--ink2);letter-spacing:.05em;text-transform:uppercase;background:#f6f6f3}
+tr:last-child td{border-bottom:none}
+.ask{background:var(--sig-soft);border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:6px}
+footer{font-size:12.5px;color:var(--ink2);border-top:1px solid var(--hair);padding-top:14px;max-width:1080px;margin:0 auto}
+@media (max-width:760px){
+  .stagewrap{min-height:640px}.win{height:600px;grid-template-columns:minmax(0,1fr)}.side{display:none}.scene{padding:48px 20px 70px}.foot{left:20px;right:20px}
+  .pair,.dl,.ans,.demo,.mini2{grid-template-columns:minmax(0,1fr)}.ans canvas{display:none}
+  .cards{grid-template-columns:minmax(0,1fr)}.card canvas{display:none}.strip{grid-template-columns:minmax(0,1fr)}
+  .legend{grid-template-columns:repeat(2,minmax(0,1fr))}.rowsx{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="m" viewBox="0 0 16 16"><path d="M3 13V4.3c0-.7.9-1 1.3-.4L8 9l3.7-5.1c.4-.6 1.3-.3 1.3.4V13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<main>
+<header>
+  <span class="k">Design sketch · First launch and website</span>
+  <h1>Show it. Don't explain it.</h1>
+  <p class="sub">A regular Mac app window, not a menu. Six steps, each one moving picture, at most six words and one number, in the Mference site's look. It plays by itself.</p>
+</header>
+
+<!-- ============ PART 1: PLAYABLE ONBOARDING ============ -->
+<section>
+  <div class="desk">
+    <div class="mbar"><span>Wi-Fi</span><span class="me" id="meIcon"><svg><use href="#m"/></svg></span><span>9:41 AM</span></div>
+    <div class="stagewrap">
+      <div class="win" id="win" role="region" aria-label="Mference first launch">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <aside class="side" id="side"><div class="app"><i><svg><use href="#m"/></svg></i>Mference</div><div class="fill"></div><div class="ver">Version 0.3.0</div></aside>
+        <div class="main"><div class="ttl">Welcome to Mference</div>
+
+        <div class="scene" data-s="0">
+          <div class="t">Run the models you couldn't before.</div>
+          <div class="pair">
+            <figure style="margin:0"><canvas id="cFull"></canvas><div class="cap"><span>All 512 experts</span><span class="big" style="font-size:26px"><span class="o">175 GB</span></span></div></figure>
+            <figure style="margin:0"><canvas id="cSparse"></canvas><div class="cap"><span>The 10 it calls</span><span class="big" style="font-size:26px"><span class="n">2.36 GB</span></span></div></figure>
+          </div>
+        </div>
+
+        <div class="scene" data-s="1">
+          <div class="t">Your Mac: 24 GB.</div>
+          <div class="mem"><span class="lab">24 GB</span><div class="chips" id="chips"></div></div>
+          <div class="big"><span class="n" id="fitN">0</span> models run here.</div>
+        </div>
+
+        <div class="scene" data-s="2">
+          <div class="t">Pick one.</div>
+          <div class="cards" id="cards"></div>
+        </div>
+
+        <div class="scene" data-s="3">
+          <div class="t">Arriving.</div>
+          <div class="dl">
+            <canvas id="cDl"></canvas>
+            <div class="meter"><div class="big" id="dlNum">0.00</div><div class="small">of 19.55 GB · <span id="dlLeft">3 min 55 s</span> left</div><div class="small" style="margin-top:10px">Qwen 3.6 · 40 layers</div></div>
+          </div>
+        </div>
+
+        <div class="scene" data-s="4">
+          <div class="t">Say hello.</div>
+          <div class="ans">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="bub">How do you fit on my Mac?</div>
+              <div class="reply" id="reply"></div>
+              <div class="small" id="ansMeta">first word in 2.1 s · <b style="color:var(--ink)">26.4 tokens/s</b></div>
+            </div>
+            <canvas id="cAns"></canvas>
+          </div>
+        </div>
+
+        <div class="scene" data-s="5">
+          <div class="t">It lives up there.</div>
+          <div class="toggle"><button class="sw" role="switch" aria-checked="false" id="sw1" aria-label="Update automatically"></button>Update automatically</div>
+          <div class="toggle"><button class="sw" role="switch" aria-checked="false" id="sw2" aria-label="Open at login"></button>Open at login</div>
+          <div class="small">Both start off.</div>
+        </div>
+
+        <div class="foot"><div class="dots" id="dots"></div><div style="display:flex;gap:14px;align-items:center"><button class="skip" id="skip">Skip</button><button class="go" id="next">Continue</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="under"><button class="go" id="replay">▶ Replay from the start</button><span class="small">Auto-plays. Click a step in the sidebar to jump. Click a card in step 3.</span></div>
+  <div class="legend">
+    <div><b>1 · The idea</b>The site's two grids, animated</div>
+    <div><b>2 · This Mac</b>Models drop in; ones that fit stay</div>
+    <div><b>3 · Pick</b>Three cards, live grid, real speed</div>
+    <div><b>4 · Download</b>Each cell is one expert file arriving</div>
+    <div><b>5 · First answer</b>Streams at the measured speed</div>
+    <div><b>6 · All set</b>The window flies into the menu-bar M</div>
+  </div>
+</section>
+
+<!-- ============ PART 2: WEBSITE, EXTENDED ============ -->
+<section>
+  <h2>The site, extended.</h2>
+  <p class="sub">The existing page from the <b>add-landing-site</b> branch, drawn as it is. Orange blocks are new. Nothing existing is removed.</p>
+  <div class="site">
+    <div class="sbar"><span>●●●</span><span class="u">oficiallyakshay.github.io/mference</span></div>
+    <div class="blk new"><span class="badge">changed</span><div class="snav"><span class="brand"><i>M</i>Mference</span><span class="sbtn">Download for Mac</span></div><div class="small" style="margin-top:6px">Was "Get the source release". The app replaces building from source.</div></div>
+    <div class="blk"><span class="badge">existing</span><div class="sh1">Run the models you couldn't before.</div><div class="sub" style="margin-top:8px">Frontier models, on your Mac.</div>
+      <div class="mini2"><figure style="margin:0"><canvas id="sFull"></canvas><div class="cap"><span>All 512 experts loaded</span><span style="color:var(--grey);text-decoration:line-through">175 GB</span></div></figure><figure style="margin:0"><canvas id="sSparse"></canvas><div class="cap"><span>Only the 10 it calls</span><span style="color:var(--sig)">2.36 GB</span></div></figure></div></div>
+    <div class="blk new"><span class="badge">new · demo</span><h2 style="font-size:28px">Watch it answer.</h2>
+      <div class="demo"><div class="player"><b>Inkling-Small 276B · 24 GB M5</b><div class="reply" id="sReply" style="min-height:70px"></div><div class="scrub"><i id="sScrub"></i></div><div class="small">recorded run · 3.0 to 3.7 tokens/s · 9 GB in memory</div></div>
+      <canvas id="sAns"></canvas></div></div>
+    <div class="blk"><span class="badge">existing</span><div style="font-weight:600;color:var(--ink2);font-size:20px;letter-spacing:-.02em">See what your Mac can run now that it couldn't before.</div><div class="seg"><span>8 GB</span><span>16 GB</span><span class="on">24 GB</span><span>256 GB</span></div>
+      <div style="font-size:34px;font-weight:700;letter-spacing:-.035em;margin-top:12px"><b style="color:var(--sig)">3</b> models now run in 24 GB.</div>
+      <div class="rowsx"><span>Inkling-Small 276B</span><span><span class="a">148 GB</span> → <span class="b">9 GB</span></span><span>3.0–3.7 tok/s</span><span>DeepSeek-V4-Flash 284B</span><span><span class="a">91 GB</span> → <span class="b">5.7 GB</span></span><span>not measured</span></div></div>
+    <div class="blk new"><span class="badge">new · first minute</span><h2 style="font-size:28px">Your first minute.</h2>
+      <div class="strip">
+        <div class="fr"><div class="w">Your Mac: 24 GB</div><b>Open</b></div>
+        <div class="fr"><div class="w"><canvas id="sPick"></canvas></div><b>Pick</b></div>
+        <div class="fr"><div class="w">26.4 tokens/s</div><b>Ask</b></div>
+      </div></div>
+    <div class="blk new"><span class="badge">new · download</span><div class="under"><div style="font-size:28px;font-weight:720;letter-spacing:-.035em">Mference for Mac.</div><div style="display:flex;gap:10px;flex-wrap:wrap"><span class="sbtn">Download</span><span class="sbtn ghost">What's new</span></div></div><div class="small" style="margin-top:6px">Apple Silicon · macOS 15+ · updates itself when you turn updates on</div></div>
+    <div class="blk"><span class="badge">existing</span><div class="under small"><span>Apple Silicon · macOS 15+ · MIT license</span><span>GitHub</span></div></div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change to the site</th><th>Files</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Nav button becomes Download for Mac</td><td><code>site/index.html</code></td><td>The app replaces building from source</td></tr>
+      <tr><td>Watch it answer: a recorded run, played at its real speed, beside the existing grid</td><td><code>index.html</code>, new <code>replay.js</code>, reuses <code>flux.js</code></td><td>The demo, with no install</td></tr>
+      <tr><td>Your first minute: the app's first three steps as three small frames</td><td><code>index.html</code></td><td>Onboarding on the site, three words</td></tr>
+      <tr><td>Download block at the end</td><td><code>index.html</code></td><td>One clear end to the page</td></tr>
+      <tr><td>Update list the app reads</td><td>new <code>site/appcast.xml</code>, published by the existing Pages workflow</td><td>Automatic updates, as in Ensemble</td></tr>
+      <tr><td>The app's step 2 and 3 use the site's own numbers</td><td><code>site/data.js</code> shared with the app</td><td>One source for sizes and speeds</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="ask">
+    <span class="k">Open decisions</span>
+    <p>Each of the six steps and each orange block is still open for review. The site branch is not merged, so the site is not published yet, and its links point to the upstream repository (NeelM0906/Mference).</p>
+  </div>
+</section>
+</main>
+<footer>Sketch, not built. Numbers from the site's own data file and the Mference README: Flash-Next 512 experts, 10 per token, 175 GB on disk, 2.36 GB at 16 slots; Qwen 3.6 19.55 GB, 23.5 to 29.3 tokens/s on a 24 GB M5; Qwen 3.8 27B 15.0; Inkling-Small 3.0 to 3.7, 9 GB. Clock times, the download rate, the 2.1 s and the reply text are examples. The grids are illustrations, as on the site: they do not show real expert picks.</footer>
+
+<script>
+(function(){
+  /* ---- grid painter, same idea as the site's flux.js ---- */
+  function grid(cv,o){
+    var cols=o.cols,rows=o.rows,N=cols*rows,gap=o.gap||2,ctx=cv.getContext('2d'),dpr=Math.min(window.devicePixelRatio||1,2),s=4,W=0,H=0;
+    var lit=new Float32Array(N),tgt=new Float32Array(N),fill=0,mode=o.mode||'sparse',top=o.top||10;
+    function size(){var w=cv.clientWidth||cv.parentNode.clientWidth||300;s=Math.max(3,Math.floor((w-gap*(cols-1))/cols));W=cols*s+(cols-1)*gap;H=rows*s+(rows-1)*gap;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);}
+    size();
+    function pick(){tgt.fill(0);for(var n=0;n<top;){var i=(Math.random()*N)|0;if(!tgt[i]){tgt[i]=1;n++;}}}
+    if(mode==='full'){tgt.fill(1);lit.fill(1);}else if(mode==='sparse')pick();
+    var last=0;
+    function draw(t){
+      if(mode==='sparse'&&t-last>(o.every||900)){pick();last=t;}
+      if(mode==='fill'){var k=Math.floor(fill*N);for(var j=0;j<N;j++)tgt[j]=j<k?1:0;}
+      ctx.clearRect(0,0,W,H);
+      for(var i=0;i<N;i++){
+        lit[i]+= (tgt[i]-lit[i])*(mode==='sparse'?0.18:0.25);
+        var x=(i%cols)*(s+gap),y=((i/cols)|0)*(s+gap),v=lit[i];
+        ctx.fillStyle=v>0.05?(o.on):o.off;ctx.globalAlpha=v>0.05?Math.min(1,0.25+v):1;
+        var z=s*(1+0.35*(mode==='sparse'?v:0)),d=(z-s)/2;
+        ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-d,y-d,z,z,Math.max(1,s*.22));else ctx.rect(x-d,y-d,z,z);ctx.fill();
+      }
+      ctx.globalAlpha=1;requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+    return {set:function(f){fill=f;},burst:function(){pick();},resize:size};
+  }
+  var ON='#4f4ee0',OFF='rgba(14,15,18,.10)',GREY='#9a9ca4';
+  var g={};
+  g.full=grid(document.getElementById('cFull'),{cols:32,rows:19,mode:'full',on:GREY,off:OFF});
+  g.sparse=grid(document.getElementById('cSparse'),{cols:32,rows:19,on:ON,off:OFF,every:1100});
+  g.dl=grid(document.getElementById('cDl'),{cols:40,rows:26,mode:'fill',on:ON,off:OFF});
+  g.ans=grid(document.getElementById('cAns'),{cols:12,rows:24,gap:2,on:ON,off:OFF,every:38000});
+  grid(document.getElementById('sFull'),{cols:32,rows:10,mode:'full',on:GREY,off:OFF});
+  grid(document.getElementById('sSparse'),{cols:32,rows:10,on:ON,off:OFF,every:1500});
+  var sAns=grid(document.getElementById('sAns'),{cols:24,rows:12,on:ON,off:OFF,every:99999});
+  grid(document.getElementById('sPick'),{cols:16,rows:6,on:ON,off:OFF,every:900});
+
+  /* ---- step 2: models drop into memory ---- */
+  var models=[['MiniCPM5 2B',1],['Maple 20B',1],['Gemma 4 26B',1],['Gemma 4 QAT',1],['Qwen 3.6 35B',1],['Qwen 3.8 27B',1],['Flash-Next 180B',1],['Inkling 276B',1],['DeepSeek V4 284B',1],['GLM-5.3 320B',0]];
+  var chipsEl=document.getElementById('chips'),fitN=document.getElementById('fitN');
+  function runChips(){
+    chipsEl.innerHTML='';fitN.textContent='0';var n=0;
+    models.forEach(function(m,i){var c=document.createElement('span');c.className='chip'+(m[1]?'':' no');c.textContent=m[0];chipsEl.appendChild(c);
+      setTimeout(function(){c.classList.add('in');if(m[1]){n++;fitN.textContent=n;}},250+i*230);});
+  }
+  /* ---- step 3: cards with tilt ---- */
+  var picks=[['Qwen 3.6 35B','23.5–29.3','tokens/s'],['Qwen 3.8 27B','15.0','tokens/s'],['Inkling 276B','3.0–3.7','tokens/s']];
+  var cardsEl=document.getElementById('cards');
+  picks.forEach(function(p,i){
+    var c=document.createElement('div');c.className='card'+(i===0?' sel':'');c.tabIndex=0;c.setAttribute('role','button');
+    c.innerHTML='<canvas></canvas><span class="nm">'+p[0]+'</span><span class="sp">'+p[1]+' <small>'+p[2]+'</small></span>';
+    cardsEl.appendChild(c);
+    grid(c.querySelector('canvas'),{cols:16,rows:8,on:ON,off:OFF,every:700+i*500,top:i===2?6:10});
+    c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.transform='rotateY('+(x*14)+'deg) rotateX('+(-y*14)+'deg) translateZ(8px)';});
+    c.addEventListener('mouseleave',function(){c.style.transform='';});
+    function sel(){[].forEach.call(cardsEl.children,function(k){k.classList.remove('sel');});c.classList.add('sel');}
+    c.addEventListener('click',sel);c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();sel();}});
+  });
+  /* ---- step 4: download ---- */
+  var dlNum=document.getElementById('dlNum'),dlLeft=document.getElementById('dlLeft'),dlT=null;
+  function runDl(){clearInterval(dlT);var f=0;dlT=setInterval(function(){f=Math.min(1,f+0.012);g.dl.set(f);var gb=19.55*f;dlNum.textContent=gb.toFixed(2);var left=Math.round((19.55-gb)*1000/48.3);dlLeft.textContent=Math.floor(left/60)+' min '+(left%60)+' s';if(f>=1)clearInterval(dlT);},60);}
+  /* ---- step 5: streaming answer ---- */
+  var text='Only 3 billion of my 35 billion parts work on each word. Mference keeps them in memory and reads the rest from your SSD. I fit in 1.45 GB.';
+  function stream(el,txt,rate,onTok,done){el.innerHTML='';var words=txt.split(' '),i=0,iv=setInterval(function(){if(i>=words.length){clearInterval(iv);el.innerHTML=txt;done&&done();return;}el.innerHTML=words.slice(0,++i).join(' ')+'<span class="cur"></span>';onTok&&onTok();},1000/rate);return iv;}
+  var ansIv=null;
+  function runAns(){clearInterval(ansIv);ansIv=stream(document.getElementById('reply'),text,9,function(){g.ans.burst();});}
+  /* site demo replay: loops */
+  var sIv=null;
+  function siteLoop(){var sc=document.getElementById('sScrub'),txt='Mixture-of-experts models call a few experts for each token, so the rest can wait on the SSD.',n=txt.split(' ').length,i=0;
+    clearInterval(sIv);sIv=stream(document.getElementById('sReply'),txt,3.4,function(){i++;sc.style.width=(i/n*100)+'%';sAns.burst();},function(){setTimeout(siteLoop,2200);});}
+  siteLoop();
+
+  /* ---- stepper ---- */
+  var scenes=[].slice.call(document.querySelectorAll('.scene')),dots=document.getElementById('dots'),cur=-1,auto=null,win=document.getElementById('win'),me=document.getElementById('meIcon');
+  var DUR=[4200,4200,4200,5600,6200,3600];
+  var NAMES=['Welcome','Your Mac','Pick a model','Download','First chat','All set'],side=document.getElementById('side'),fill=side.querySelector('.fill'),sideBtns=[];
+  NAMES.forEach(function(nm,i){var b=document.createElement('button');b.innerHTML='<span class="n">'+(i+1)+'</span>'+nm;b.addEventListener('click',function(){go(i,true);});side.insertBefore(b,fill);sideBtns.push(b);});
+  scenes.forEach(function(_,i){var b=document.createElement('button');b.setAttribute('aria-label','Step '+(i+1));b.addEventListener('click',function(){go(i,true);});dots.appendChild(b);});
+  function go(i,manual){
+    clearTimeout(auto);win.classList.remove('fly');me.classList.remove('ping');cur=i;
+    scenes.forEach(function(s,k){s.classList.toggle('on',k===i);});
+    [].forEach.call(dots.children,function(b,k){b.setAttribute('aria-current',k===i?'true':'false');});
+    sideBtns.forEach(function(b,k){b.setAttribute('aria-current',k===i?'true':'false');b.classList.toggle('done',k<i);var n=b.querySelector('.n');n.textContent=k<i?'✓':(k+1);});
+    document.getElementById('next').textContent=i===scenes.length-1?'Done':'Continue';
+    if(i===1)runChips(); if(i===3)runDl(); if(i===4)runAns();
+    if(i===0){g.full.resize();g.sparse.resize();}if(i===3)g.dl.resize();if(i===4)g.ans.resize();
+    auto=setTimeout(function(){i<scenes.length-1?go(i+1):finish();},DUR[i]);
+  }
+  function finish(){clearTimeout(auto);win.classList.add('fly');setTimeout(function(){me.classList.add('ping');},700);setTimeout(function(){go(0);},3600);}
+  document.getElementById('next').addEventListener('click',function(){cur<scenes.length-1?go(cur+1,true):finish();});
+  document.getElementById('skip').addEventListener('click',finish);
+  document.getElementById('replay').addEventListener('click',function(){go(0,true);});
+  ['sw1','sw2'].forEach(function(id){var b=document.getElementById(id);b.addEventListener('click',function(){b.setAttribute('aria-checked',b.getAttribute('aria-checked')==='true'?'false':'true');});});
+  go(0);
+})();
+</script>
+
+</body>
+</html>

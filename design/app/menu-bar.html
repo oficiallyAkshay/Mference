@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mference menu bar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column (max 1140px). Hero = main menu + Switch Model submenu on a wallpaper; then states grouped in 4 bands (Running, Start and stop, Models, Problems); then icon table and build table. Menus use a Liquid Glass look: translucent, blurred, specular rim, pill highlight. */
+:root{
+  --bg:#eef0f3; --surface:#ffffff; --ink:#16181b; --muted:#5b616a; --line:#d9dce1;
+  --accent:#2f5d8a; --accent-soft:#e3ecf5;
+  --wall-a:#7fb3d9; --wall-b:#f2c48d; --wall-c:#9fd3c1; --wall-d:#e9eef5;
+  --glass:rgba(250,251,253,.58); --glass-rim:rgba(255,255,255,.75); --glass-edge:rgba(0,0,0,.10);
+  --menu-ink:#1d1d1f; --menu-dim:rgba(29,29,31,.52); --menu-sep:rgba(0,0,0,.09);
+  --hl:#0a84ff; --hl-ink:#ffffff; --ok:#28a745; --warn:#e08600; --bad:#e5392f; --info:#0a84ff; --off:#8e8e93;
+  --bar:rgba(255,255,255,.22);
+  --sans:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mac:-apple-system,BlinkMacSystemFont,"SF Pro Text","Instrument Sans",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1113; --surface:#1a1d20; --ink:#e8eaed; --muted:#a0a7b0; --line:#30353b;
+  --accent:#8db6e0; --accent-soft:#1f2c3a;
+  --wall-a:#1d3b5c; --wall-b:#5a3a22; --wall-c:#1e4a43; --wall-d:#12161c;
+  --glass:rgba(38,40,46,.55); --glass-rim:rgba(255,255,255,.18); --glass-edge:rgba(0,0,0,.45);
+  --menu-ink:#f5f5f7; --menu-dim:rgba(245,245,247,.55); --menu-sep:rgba(255,255,255,.10);
+  --ok:#32d74b; --warn:#ff9f0a; --bad:#ff453a; --bar:rgba(0,0,0,.18); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1113; --surface:#1a1d20; --ink:#e8eaed; --muted:#a0a7b0; --line:#30353b;
+  --accent:#8db6e0; --accent-soft:#1f2c3a;
+  --wall-a:#1d3b5c; --wall-b:#5a3a22; --wall-c:#1e4a43; --wall-d:#12161c;
+  --glass:rgba(38,40,46,.55); --glass-rim:rgba(255,255,255,.18); --glass-edge:rgba(0,0,0,.45);
+  --menu-ink:#f5f5f7; --menu-dim:rgba(245,245,247,.55); --menu-sep:rgba(255,255,255,.10);
+  --ok:#32d74b; --warn:#ff9f0a; --bad:#ff453a; --bar:rgba(0,0,0,.18); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+main{max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:30px} h2{font-size:21px} h3{font-size:15px}
+p{margin:0;max-width:70ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted)}
+header,section{display:flex;flex-direction:column;gap:12px}
+.small{font-size:13px;color:var(--muted)}
+code{font-family:var(--mono);font-size:12.5px;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+
+/* wallpaper + glass */
+.desk{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);min-width:0;
+  background:
+    radial-gradient(60% 80% at 15% 20%,var(--wall-a) 0%,transparent 70%),
+    radial-gradient(50% 70% at 85% 30%,var(--wall-b) 0%,transparent 70%),
+    radial-gradient(60% 70% at 55% 100%,var(--wall-c) 0%,transparent 70%),
+    var(--wall-d)}
+.mbar{height:28px;background:var(--bar);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-family:var(--mac);font-size:12.5px;color:var(--menu-ink);font-weight:500}
+.mbar .o{opacity:.85;display:flex;align-items:center}
+.mbar .o svg{width:15px;height:15px}
+.mbar .me{display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--glass);box-shadow:inset 0 0 0 .5px var(--glass-rim)}
+.mbar .me svg{width:16px;height:16px}
+.mbar .me .badge{width:6px;height:6px;border-radius:50%}
+.stage{padding:6px 10px 20px;display:flex;justify-content:flex-end;gap:6px;align-items:flex-start;flex-wrap:wrap}
+.menu{width:300px;max-width:100%;background:var(--glass);-webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
+  border-radius:14px;border:.5px solid var(--glass-edge);
+  box-shadow:inset 0 1px 0 var(--glass-rim),inset 0 0 0 .5px var(--glass-rim),0 16px 40px rgba(0,0,0,.22);
+  font-family:var(--mac);font-size:13px;color:var(--menu-ink);padding:6px;line-height:1.3}
+.menu.wide{width:340px}
+.menu.sub{margin-top:150px}
+.mi{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:8px;padding:4px 9px;border-radius:8px;min-height:26px}
+.mi svg.ic{width:16px;height:16px;color:var(--menu-ink);opacity:.85}
+.mi .r{color:var(--menu-dim);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mi.hl{background:var(--hl);color:var(--hl-ink)} .mi.hl svg.ic{color:var(--hl-ink);opacity:1} .mi.hl .r{color:var(--hl-ink);opacity:.85}
+.mi.dis{color:var(--menu-dim)} .mi.dis svg.ic{opacity:.4}
+.mi.danger{color:var(--bad)} .mi.danger svg.ic{color:var(--bad)}
+.mi.hd{color:var(--menu-dim);font-size:11.5px;font-weight:600;min-height:20px;padding-top:6px;grid-template-columns:1fr auto}
+.chev{font-size:15px;line-height:1;color:var(--menu-dim)}
+.mi.hl .chev{color:var(--hl-ink)}
+.sep{height:1px;background:var(--menu-sep);margin:5px 9px}
+.st{display:grid;grid-template-columns:30px 1fr;gap:9px;padding:7px 9px 8px;align-items:start}
+.st .tile{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff}
+.st .tile svg{width:17px;height:17px}
+.st .tile.ok{background:var(--ok)} .st .tile.warn{background:var(--warn)} .st .tile.bad{background:var(--bad)} .st .tile.off{background:var(--off)} .st .tile.info{background:var(--info)}
+.st .tt{font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.st .tt .r{font-weight:500;color:var(--menu-dim);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.st .ln{color:var(--menu-dim);font-size:12px;font-variant-numeric:tabular-nums}
+.pbar{height:5px;border-radius:3px;background:var(--menu-sep);overflow:hidden;margin-top:5px}
+.pbar i{display:block;height:100%;border-radius:3px;background:var(--hl)}
+.pbar.warn i{background:var(--warn)}
+.notif{width:340px;max-width:100%;margin:6px 10px 0 auto;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:18px;background:var(--glass);-webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
+  box-shadow:inset 0 1px 0 var(--glass-rim),inset 0 0 0 .5px var(--glass-rim),0 10px 28px rgba(0,0,0,.18);font-family:var(--mac);font-size:12.5px;color:var(--menu-ink)}
+.notif .app{width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,#f7f7f9,#d9dce2);display:grid;place-items:center;color:#3a3d42}
+.notif .app svg{width:20px;height:20px}
+.notif .b{font-weight:600}
+.notif .s{color:var(--menu-dim)}
+.notif .btn{border-radius:999px;padding:3px 10px;background:var(--menu-sep);font-weight:500;white-space:nowrap}
+/* page */
+.hero{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:18px;align-items:start}
+.notes{display:flex;flex-direction:column;gap:10px}
+.notes .n{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.notes .n b{font-weight:600}
+.band{display:flex;flex-direction:column;gap:12px}
+.band h3{font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cap{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cap b{font-weight:600}
+.tag{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.why{font-size:12.5px;color:var(--accent);display:flex;gap:6px}
+.why::before{content:"→";font-family:var(--mono)}
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.icn{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.icn .sq{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+.icn .sq svg{width:18px;height:18px}
+.icn .nm{font-size:13px;font-weight:500}
+.icn .sf{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;background:var(--bg)}
+tr:last-child td{border-bottom:none}
+.ask{background:var(--accent-soft);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:6px}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;max-width:1140px;margin:0 auto}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)} .menu.sub{margin-top:0}}
+@media (prefers-reduced-transparency: reduce){.menu,.notif{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}}
+</style>
+</head>
+<body>
+
+<!-- Icon set: line icons drawn to sit beside SF Symbols; each id maps to a named SF Symbol in the table below. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="m" viewBox="0 0 16 16"><path d="M3 13V4.3c0-.7.9-1 1.3-.4L8 9l3.7-5.1c.4-.6 1.3-.3 1.3.4V13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="chat" viewBox="0 0 16 16"><path d="M2.5 3.5h8a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5H6L3.5 12.5V10.5h-1A1.5 1.5 0 0 1 1 9V5a1.5 1.5 0 0 1 1.5-1.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M13 6.5h.5A1.5 1.5 0 0 1 15 8v3.5a1.5 1.5 0 0 1-1.5 1.5H13v1.5L11 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+<symbol id="swap" viewBox="0 0 16 16"><path d="M3 6.5h9.5M10 4l2.5 2.5L10 9M13 9.5H3.5M6 12 3.5 9.5 6 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="dl" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8v5.4M5.6 8 8 10.4 10.4 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="steth" viewBox="0 0 16 16"><path d="M4 2v4a3 3 0 0 0 6 0V2M7 9v1.5a3 3 0 0 0 6 0V9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="13" cy="7.3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+<symbol id="doc" viewBox="0 0 16 16"><path d="M4 1.8h5.2L12.5 5v9.2H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 7.5h4.5M6 9.8h4.5M6 12h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+<symbol id="power" viewBox="0 0 16 16"><path d="M8 2v5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.6 4.3a5 5 0 1 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+<symbol id="play" viewBox="0 0 16 16"><path d="M5 3.2v9.6c0 .5.5.8.9.5l7.3-4.8c.4-.3.4-.8 0-1L5.9 2.7c-.4-.3-.9 0-.9.5z" fill="currentColor"/></symbol>
+<symbol id="pause" viewBox="0 0 16 16"><rect x="4" y="3" width="2.6" height="10" rx=".8" fill="currentColor"/><rect x="9.4" y="3" width="2.6" height="10" rx=".8" fill="currentColor"/></symbol>
+<symbol id="retry" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="warn" viewBox="0 0 16 16"><path d="M7.1 2.6 1.6 12.4c-.4.7.1 1.6.9 1.6h11c.8 0 1.3-.9.9-1.6L8.9 2.6c-.4-.7-1.4-.7-1.8 0z" fill="currentColor"/><path d="M8 6v3.6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="#fff"/></symbol>
+<symbol id="chip" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="6" y="6" width="4" height="4" rx=".6" fill="currentColor"/><path d="M6 1.5v2M10 1.5v2M6 12.5v2M10 12.5v2M1.5 6h2M1.5 10h2M12.5 6h2M12.5 10h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+<symbol id="disk" viewBox="0 0 16 16"><rect x="1.8" y="4.5" width="12.4" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="11.3" cy="8" r=".9" fill="currentColor"/><path d="M4 8h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+<symbol id="gauge" viewBox="0 0 16 16"><path d="M2.3 11.5a6 6 0 1 1 11.4 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M8 10 11 5.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="10" r="1.2" fill="currentColor"/></symbol>
+<symbol id="cube" viewBox="0 0 16 16"><path d="M8 1.8 13.5 4.8v6.4L8 14.2 2.5 11.2V4.8z M2.5 4.8 8 7.8l5.5-3M8 7.8v6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><path d="M5 8.2 7 10.2 11 6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="tick" viewBox="0 0 16 16"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="xc" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><path d="M5.7 5.7l4.6 4.6M10.3 5.7l-4.6 4.6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="netx" viewBox="0 0 16 16"><path d="M1.8 6.2a9 9 0 0 1 12.4 0M4 8.6a6 6 0 0 1 8 0M6.2 11a3 3 0 0 1 3.6 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2.5 2.5l11 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+<symbol id="term" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.3 6.2 6.5 8 4.3 9.8M8 10.2h3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="hour" viewBox="0 0 16 16"><path d="M4 1.8h8M4 14.2h8M5 1.8c0 3.4 6 3.4 6 6.2s-6 2.8-6 6.2M11 1.8c0 3.4-6 3.4-6 6.2s6 2.8 6 6.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+<symbol id="trash" viewBox="0 0 16 16"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.2c.1.7.6 1.3 1.3 1.3h4c.7 0 1.2-.6 1.3-1.3L12 4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="folder" viewBox="0 0 16 16"><path d="M1.8 4.2c0-.7.5-1.2 1.2-1.2h3l1.4 1.5h5.6c.7 0 1.2.5 1.2 1.2v6.4c0 .7-.5 1.2-1.2 1.2H3c-.7 0-1.2-.5-1.2-1.2z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="login" viewBox="0 0 16 16"><path d="M9.5 2.5h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3M2 8h8M7.2 5.2 10 8l-2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="plug" viewBox="0 0 16 16"><path d="M5.5 1.8v3M10.5 1.8v3M3.8 4.8h8.4v2.4a4.2 4.2 0 0 1-8.4 0zM8 11.4v2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="book" viewBox="0 0 16 16"><path d="M8 3.8C6.5 2.6 4.4 2.3 2 2.6v9.6c2.4-.3 4.5 0 6 1.2 1.5-1.2 3.6-1.5 6-1.2V2.6c-2.4-.3-4.5 0-6 1.2zM8 3.8v9.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="wifi" viewBox="0 0 16 16"><path d="M1.8 6.2a9 9 0 0 1 12.4 0M4 8.6a6 6 0 0 1 8 0M6.2 11a3 3 0 0 1 3.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+<symbol id="batt" viewBox="0 0 16 16"><rect x="1" y="4.5" width="12" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="6" width="8" height="4" rx="1" fill="currentColor"/><path d="M14.5 7v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<main>
+<header>
+  <span class="eyebrow">Design sketch · Menu-bar app · Approved</span>
+  <h1>Mference menu bar</h1>
+  <p class="lede">A native Mac menu in the macOS 26 Liquid Glass style. Every row has an icon from Apple's SF Symbols set and a word. Every number is exact: it comes from the server, the installer or this Mac, never a guess. 24 states are drawn below. The figures are example readings; where a figure comes from the Mference docs, the footer says so.</p>
+</header>
+
+<section>
+  <h2>The main menu</h2>
+  <div class="hero">
+    <div class="desk" id="hero"></div>
+    <div class="notes">
+      <div class="n"><b>Status first.</b> The top row names the model, its state and three measured facts: speed of the last reply, memory in use, and when and how fast it loaded.</div>
+      <div class="n"><b>Measured, not estimated.</b> A load time is the last load of that model on this Mac. A model never loaded here says so, instead of a guess.</div>
+      <div class="n"><b>Native glass.</b> Built with SwiftUI <code>MenuBarExtra</code> in menu style, so macOS draws the glass, the highlight and the dark mode. With "Reduce transparency" on, macOS draws a solid menu.</div>
+      <div class="n"><b>One accent.</b> Colour appears only in the status tile: green ready, orange busy or warning, red failed, grey off.</div>
+    </div>
+  </div>
+</section>
+
+<section class="band"><h2>Running</h2><div class="grid" id="g-run"></div></section>
+<section class="band"><h2>Start and stop</h2><div class="grid" id="g-start"></div></section>
+<section class="band"><h2>Models and installs</h2><div class="grid" id="g-models"></div></section>
+<section class="band"><h2>Problems</h2><p class="small">Each problem says what failed, the measured fact behind it, and the one action that fixes it. Mference never stops a process it did not start.</p><div class="grid" id="g-prob"></div></section>
+
+<section>
+  <h2>Icons</h2>
+  <p class="small">The drawings here stand in for the SF Symbols named under each one. The build uses the real symbols, so they match the system and change with the theme.</p>
+  <div class="icons" id="icons"></div>
+</section>
+
+<section>
+  <h2>What each state needs from the server</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Fact on screen</th><th>Source</th><th>Exists today?</th></tr></thead>
+    <tbody>
+      <tr><td>Loaded model, Ready or Loading</td><td>Server health check</td><td>Yes</td></tr>
+      <tr><td>Speed of the last reply, tokens read and written</td><td>Timings sent with each reply</td><td>Yes, per reply. The status feed must keep the last one</td></tr>
+      <tr><td>Memory in use</td><td>Runtime memory snapshot</td><td>Yes, behind the diagnostics switch. Needs to be in the status feed</td></tr>
+      <tr><td>Load time per model on this Mac</td><td>Swap log line "swap finished in 86.4s"</td><td>Logged only. The app must store it per model</td></tr>
+      <tr><td>Requests waiting</td><td>Server queue</td><td>No. New field</td></tr>
+      <tr><td>Reading the prompt: tokens done of total</td><td>Prefill progress</td><td>No. New field</td></tr>
+      <tr><td>Load a model before chatting</td><td>"Load" request</td><td>No. Today a load starts only with a chat message</td></tr>
+      <tr><td>Install progress, speed, layer</td><td>Installer</td><td>No. The installer prints text only</td></tr>
+      <tr><td>Exact install size and free space needed</td><td>Installer dry run</td><td>Yes</td></tr>
+      <tr><td>Another model process, port in use, chat app version</td><td>Launcher checks</td><td>Yes, as text. The app needs them as structured results</td></tr>
+      <tr><td>Memory pressure</td><td>macOS memory pressure level</td><td>Yes, from macOS</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="ask">
+    <span class="eyebrow">Decided, 20 Nov 2026</span>
+    <p>Menu approved. "Open at Login" is off by default. The "Which Model Fits This Mac" guide ships in the first version.</p>
+  </div>
+</section>
+</main>
+<footer>Sketch only: not built, not run on a Mac. Figures from the Mference docs: Gemma 4 install 14.29 GB, Gemma 4 QAT 14.45 GB (needs 15.8 GB plus 1 GiB reserve while it installs), Qwen 3.6 19.55 GB, DeepSeek V4 Flash 91 GB on disk and 5.7 GB peak memory at 16 slots, Qwen 3.6 memory from 1.45 GB, Maple 645 MiB, the 86.4 s swap, the 2,940-token prompt and 210 prompt tokens/s on Flash-Next. All other figures (clock times, speeds, process numbers, free disk) are examples.</footer>
+
+<script>
+(function(){
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function ic(id){return '<svg class="ic"><use href="#'+id+'"/></svg>';}
+  function item(x){
+    if(x.sep) return '<div class="sep"></div>';
+    if(x.hd) return '<div class="mi hd"><span>'+esc(x.hd)+'</span><span class="r">'+esc(x.r||'')+'</span></div>';
+    if(x.st){
+      var h='<div class="st"><div class="tile '+x.tone+'"><svg><use href="#'+(x.st)+'"/></svg></div><div><div class="tt"><span>'+esc(x.t)+'</span><span class="r">'+esc(x.r||'')+'</span></div>';
+      (x.ln||[]).forEach(function(l){h+='<div class="ln">'+esc(l)+'</div>';});
+      if(x.bar!=null) h+='<div class="pbar'+(x.barTone?' '+x.barTone:'')+'"><i style="width:'+x.bar+'%"></i></div>';
+      return h+'</div></div>';
+    }
+    var cls='mi'+(x.hl?' hl':'')+(x.dis?' dis':'')+(x.danger?' danger':'');
+    var right=x.sub?'<span class="chev">›</span>':'<span class="r">'+esc(x.r||'')+'</span>';
+    return '<div class="'+cls+'">'+(x.i?ic(x.i):'<span></span>')+'<span>'+esc(x.l)+'</span>'+right+'</div>';
+  }
+  function menu(items,cls){return '<div class="menu'+(cls?' '+cls:'')+'">'+items.map(item).join('')+'</div>';}
+  function bar(state,time){
+    var me=state==='off'?'<span class="me" style="opacity:.45"><svg><use href="#m"/></svg></span>':
+      '<span class="me"><svg><use href="#m"/></svg>'+(state==='warn'?'<span class="badge" style="background:var(--warn)"></span>':state==='bad'?'<span class="badge" style="background:var(--bad)"></span>':'')+'</span>';
+    return '<div class="mbar"><span class="o"><svg><use href="#wifi"/></svg></span><span class="o"><svg><use href="#batt"/></svg></span>'+me+'<span>'+esc(time)+'</span></div>';
+  }
+  function notif(n){return '<div class="notif"><div class="app"><svg><use href="#m"/></svg></div><div><div class="b">'+esc(n.t)+'</div><div class="s">'+esc(n.s)+'</div></div><span class="btn">'+esc(n.btn)+'</span></div>';}
+  function scene(c){
+    var h=bar(c.icon||'on',c.time||'Fri 20 Nov 9:41 AM');
+    if(c.notif) h+=notif(c.notif);
+    h+='<div class="stage">'+(c.menus||[]).map(function(m){return menu(m.items,m.cls);}).join('')+'</div>';
+    return h;
+  }
+  function card(c){return '<div class="card"><div class="cap"><b>'+esc(c.title)+'</b><span class="tag">'+esc(c.tag)+'</span></div><div class="desk">'+scene(c)+'</div><span class="why">'+esc(c.why)+'</span></div>';}
+
+  var S={sep:1};
+  var foot=[S,{i:'power',l:'Stop Mference',r:'⌘Q'}];
+  var core=[{i:'chat',l:'Open Chat',r:'⌘O'},S,{i:'swap',l:'Switch Model',sub:1},{i:'dl',l:'Install a Model',sub:1},{i:'steth',l:'Check This Mac…'}];
+
+  // HERO
+  document.getElementById('hero').innerHTML=scene({time:'Fri 20 Nov 9:41 AM',menus:[
+    {items:[{st:'check',tone:'ok',t:'Qwen 3.6 35B-A3B',r:'Ready',ln:['26.4 tokens/s last reply · 0 waiting','Memory 1.45 GB · loaded 9:31 AM in 86.4 s']},S,
+      {i:'chat',l:'Open Chat',r:'⌘O'},S,{i:'swap',l:'Switch Model',sub:1,hl:1},{i:'dl',l:'Install a Model',sub:1},{i:'steth',l:'Check This Mac…'},S,
+      {i:'login',l:'Open at Login',r:''},{i:'doc',l:'Show Log',r:'⌘L'},{i:'term',l:'Open Terminal Dashboard',r:''},S,{i:'power',l:'Stop Mference',r:'⌘Q'}]},
+    {cls:'sub wide',items:[{hd:'Installed · 5',r:'last load on this Mac'},
+      {i:'tick',l:'Qwen 3.6 35B-A3B',r:'86.4 s · loaded'},
+      {i:'cube',l:'Gemma 4 26B-A4B',r:'41.2 s'},
+      {i:'cube',l:'Gemma 4 26B-A4B QAT',r:'never loaded here'},
+      {i:'cube',l:'Maple Preview 20B',r:'12.8 s'},
+      {i:'cube',l:'DeepSeek V4 Flash 284B',r:'2 min 14 s'},S,
+      {hd:'Not runnable · 1'},
+      {i:'warn',l:'Inkling-Small 276B',r:'install 61.0 of 145 GB',dis:1}]}
+  ]});
+
+  var groups={
+    'g-run':[
+      {title:'Ready',tag:'idle',why:'Three measured facts, no estimates.',menus:[{items:[{st:'check',tone:'ok',t:'Qwen 3.6 35B-A3B',r:'Ready',ln:['26.4 tokens/s last reply · 0 waiting','Memory 1.45 GB · loaded 9:31 AM in 86.4 s']},S].concat(core,foot)}]},
+      {title:'Reading a long prompt',tag:'prefill',icon:'warn',time:'9:52 AM',why:'The wait before the first word has a count and a rate.',menus:[{items:[{st:'hour',tone:'warn',t:'Reading your prompt',r:'1,470 / 2,940',ln:['Flash-Next 180B · 210 tokens/s · 7.0 s left','0 waiting'],bar:50,barTone:'warn'},S].concat(core,foot)}]},
+      {title:'Answering, with a queue',tag:'busy',time:'9:53 AM',why:'"1 waiting" explains a quiet second chat.',menus:[{items:[{st:'chat',tone:'ok',t:'Answering',r:'412 tokens',ln:['Gemma 4 26B-A4B · 31.2 tokens/s','1 request waiting · started 9:52:40 AM']},S].concat(core,foot)}]},
+      {title:'Switching models',tag:'loading',icon:'warn',time:'9:55 AM',why:'Bar runs against the last load of this model on this Mac.',menus:[{items:[{st:'swap',tone:'warn',t:'Loading Gemma 4 26B-A4B',r:'32.0 s',ln:['Last load here: 41.2 s · Qwen 3.6 unloaded first','Your message waits, then the answer starts'],bar:78,barTone:'warn'},S,{i:'chat',l:'Open Chat',r:'⌘O'},S,{i:'swap',l:'Switch Model',r:'after this load',dis:1},{i:'dl',l:'Install a Model',sub:1}].concat(foot)}]},
+      {title:'First load of a model',tag:'loading',icon:'warn',time:'9:57 AM',why:'With no history, the menu counts up and does not invent a total.',menus:[{items:[{st:'hour',tone:'warn',t:'Loading Gemma 4 26B-A4B QAT',r:'18.6 s',ln:['First load on this Mac · checking 14.45 GB of files','Later loads skip this check']},S,{i:'chat',l:'Open Chat',r:'⌘O'},S,{i:'swap',l:'Switch Model',r:'after this load',dis:1}].concat(foot)}]},
+      {title:'Memory pressure high',tag:'warning',icon:'warn',time:'10:03 AM',why:'macOS reports the pressure; the menu names a fix.',menus:[{items:[{st:'chip',tone:'warn',t:'Memory is tight',r:'swap 2.1 GB',ln:['macOS memory pressure: high · 24 GB Mac','Speed fell from 26.4 to 9.8 tokens/s']},{i:'swap',l:'Switch to Maple Preview · 645 MiB',r:''},S].concat(core.slice(0,1),foot)}]}
+    ],
+    'g-start':[
+      {title:'Starting',tag:'startup',icon:'warn',time:'9:30 AM',why:'Each start step is named and counted.',menus:[{items:[{st:'hour',tone:'warn',t:'Starting Mference',r:'step 3 of 5',ln:['Building the server · 14 s','Done: this Mac checked, chat app 0.11.3 found'],bar:52,barTone:'warn'},S,{i:'chat',l:'Open Chat',r:'after start',dis:1},S,{i:'power',l:'Cancel Start',r:''}]}]},
+      {title:'Mference is off',tag:'stopped',icon:'off',time:'11:05 AM',why:'The faint "M" says off at a glance.',menus:[{items:[{st:'power',tone:'off',t:'Mference is off',r:'',ln:['No model in memory','Last run 9:30 to 11:02 AM · 41 replies']},S,{i:'play',l:'Start Mference',r:'⌘S',hl:1},{i:'cube',l:'Start with Model',sub:1},S,{i:'dl',l:'Install a Model',sub:1},{i:'steth',l:'Check This Mac…'},S,{i:'login',l:'Open at Login'},{i:'xc',l:'Quit Menu Bar App',r:''}]}]},
+      {title:'Stopping',tag:'stopping',icon:'warn',time:'11:02 AM',why:'Stop waits for the reply in progress, as the server does.',menus:[{items:[{st:'hour',tone:'warn',t:'Stopping',r:'',ln:['Finishing the current reply · 88 tokens left','Then frees 1.45 GB']},S,{i:'power',l:'Stop Now',r:'⌥⌘Q',danger:1}]}]}
+    ],
+    'g-models':[
+      {title:'No models yet',tag:'empty',time:'9:33 AM',why:'The empty state names the next step.',menus:[{items:[{st:'cube',tone:'off',t:'No model installed',ln:['Install one to start chatting','This Mac: 212.4 GB free']},S,{i:'dl',l:'Install a Model',sub:1,hl:1},{i:'chat',l:'Open Chat',r:'needs a model',dis:1}].concat(foot)}]},
+      {title:'Install a Model',tag:'submenu',time:'9:34 AM',why:'Sizes come from the installer dry run; a model that does not fit is off, with the gap.',menus:[{cls:'wide',items:[{hd:'This Mac: 212.4 GB free',r:'disk needed'},
+        {i:'cube',l:'Gemma 4 26B-A4B',r:'14.29 GB'},{i:'cube',l:'Gemma 4 26B-A4B QAT',r:'17.30 GB while installing'},{i:'cube',l:'Qwen 3.6 35B-A3B',r:'19.55 GB'},{i:'cube',l:'DeepSeek V4 Flash 284B',r:'91.0 GB'},
+        {i:'cube',l:'Flash-Next 180B',r:'needs 147.6 GB more',dis:1},S,{i:'book',l:'Which Model Fits This Mac…'}]}]},
+      {title:'Installing',tag:'progress',time:'10:10 AM',why:'Measured rate, exact remainder. Chat keeps working.',menus:[{items:[{st:'check',tone:'ok',t:'Qwen 3.6 35B-A3B',r:'Ready',ln:['26.4 tokens/s · 0 waiting']},S,{st:'dl',tone:'info',t:'Installing DeepSeek V4 Flash',r:'58%',ln:['52.8 of 91.0 GB · 31.4 MB/s · 20 min 17 s left','Layer 24 of 43'],bar:58},{i:'pause',l:'Pause Install'},S,{i:'chat',l:'Open Chat',r:'⌘O'}].concat(foot)}]},
+      {title:'Install paused',tag:'paused',time:'10:12 AM',why:'Delete sits apart and in red.',menus:[{items:[{st:'pause',tone:'off',t:'Install paused',r:'58%',ln:['DeepSeek V4 Flash · 52.8 of 91.0 GB kept','Resume continues from layer 24']},{i:'play',l:'Resume Install',hl:1},S,{i:'trash',l:'Delete Partial Install · 52.8 GB',danger:1}]}]},
+      {title:'Install done',tag:'notification',time:'10:31 AM',why:'A macOS notice, so you do not need to watch the menu.',notif:{t:'DeepSeek V4 Flash 284B installed',s:'91.0 GB · all 43 layers checked',btn:'Load Now'},menus:[]},
+      {title:'Download stopped',tag:'network',icon:'bad',time:'10:15 AM',why:'Names the host and keeps every finished byte.',menus:[{items:[{st:'netx',tone:'bad',t:'Download stopped',r:'',ln:['No connection to huggingface.co since 10:14 AM','52.8 GB kept · resumes from layer 24']},{i:'retry',l:'Retry Now',hl:1},{i:'play',l:'Resume When Online'},S,{i:'trash',l:'Delete Partial Install',danger:1}]}]}
+    ],
+    'g-prob':[
+      {title:'Not enough memory',tag:'load failed',icon:'bad',time:'10:20 AM',why:'Shows the gap and a smaller setting that fits.',menus:[{items:[{st:'chip',tone:'bad',t:'Could not load DeepSeek V4 Flash',ln:['Needs 5.7 GB at 16 slots · 3.1 GB free now','Qwen 3.6 is still loaded']},{i:'retry',l:'Retry with 8 Slots',hl:1},{i:'retry',l:'Retry'},S,{i:'doc',l:'Show Log',r:'⌘L'}]}]},
+      {title:'Install not finished',tag:'load failed',icon:'bad',time:'10:22 AM',why:'One action finishes the install.',menus:[{items:[{st:'disk',tone:'bad',t:'Inkling-Small is not complete',ln:['61.0 of 145 GB installed · stopped 18 Nov','It cannot run until the install finishes']},{i:'play',l:'Resume Install · 84.0 GB left',hl:1},S,{i:'trash',l:'Delete Partial Install',danger:1}]}]},
+      {title:'Disk full',tag:'install failed',icon:'bad',time:'10:25 AM',why:'The exact space to free, and where.',menus:[{items:[{st:'disk',tone:'bad',t:'Install stopped: disk full',ln:['Needs 38.2 GB more · 4.6 GB free','DeepSeek V4 Flash · 52.8 GB kept']},{i:'folder',l:'Show Models in Finder'},{i:'play',l:'Resume When Space Is Free'},S,{i:'trash',l:'Delete Partial Install',danger:1}]}]},
+      {title:'Server not answering',tag:'unknown',icon:'bad',time:'10:40 AM',why:'Unknown is its own state, never shown as ready.',menus:[{items:[{st:'warn',tone:'bad',t:'Server stopped answering',r:'12 s',ln:['Last state: Answering · Gemma 4 26B-A4B','The chat cannot reply until it restarts']},{i:'retry',l:'Restart Server',hl:1},{i:'doc',l:'Show Log',r:'⌘L'}].concat(foot)}]},
+      {title:'Another model process',tag:'blocked',icon:'warn',time:'9:30 AM',why:'Mference names the process and never stops it.',menus:[{items:[{st:'warn',tone:'warn',t:'Another model process is running',ln:['MferenceCLI · process 48211 · since 9:14 AM','One model process at a time']},{i:'hour',l:'Start When It Ends',hl:1},{i:'gauge',l:'Show in Activity Monitor'},S,{i:'xc',l:'Cancel Start'}]}]},
+      {title:'Port in use',tag:'blocked',icon:'warn',time:'9:30 AM',why:'Names the app on the port and offers the next free port.',menus:[{items:[{st:'plug',tone:'warn',t:'Port 8080 is in use',ln:['node · process 3307 listens on it','Mference stops no app it did not start']},{i:'play',l:'Start on Port 8081',hl:1},{i:'doc',l:'Show Log',r:'⌘L'},S,{i:'xc',l:'Cancel Start'}]}]},
+      {title:'Chat app missing',tag:'setup',icon:'warn',time:'9:30 AM',why:'The exact version Mference needs, and the tool that installs it.',menus:[{items:[{st:'dl',tone:'warn',t:'Chat app not installed',ln:['Mference needs Open WebUI 0.11.3','Installer found: uv 0.9.5']},{i:'dl',l:'Install Open WebUI 0.11.3',hl:1},S,{i:'xc',l:'Cancel Start'}]}]},
+      {title:'Wrong chat app version',tag:'setup',icon:'warn',time:'9:30 AM',why:'Says why the version matters; it does not replace the app by itself.',menus:[{items:[{st:'warn',tone:'warn',t:'Open WebUI 0.12.0 found',ln:['Mference needs 0.11.3 to keep reasoning in chat history','Mference does not change it without you']},{i:'dl',l:'Install 0.11.3 Instead',hl:1},{i:'term',l:'Copy Command'},S,{i:'xc',l:'Cancel Start'}]}]},
+      {title:'Check This Mac',tag:'doctor',time:'9:29 AM',why:'The doctor check, one row per fact, and what it allows.',menus:[{cls:'wide',items:[{hd:'Check This Mac'},
+        {i:'chip',l:'Apple M3 Ultra · 256 GB',r:'✓'},{i:'cube',l:'macOS 26.1',r:'✓ 15 or later'},{i:'term',l:'Swift 6.2',r:'✓ 6.1 or later'},{i:'disk',l:'Free disk 212.4 GB',r:''},
+        {i:'plug',l:'Ports 8080 and 3000',r:'✓ free'},{i:'dl',l:'uv 0.9.5 · Open WebUI 0.11.3',r:'✓'},S,{i:'check',l:'Fits every model but Flash-Next',r:''}]}]}
+    ]
+  };
+  Object.keys(groups).forEach(function(k){document.getElementById(k).innerHTML=groups[k].map(card).join('');});
+
+  var icons=[['m','Mference','custom template image'],['chat','Open Chat','bubble.left.and.bubble.right'],['swap','Switch Model','arrow.left.arrow.right'],['dl','Install','arrow.down.circle'],['steth','Check This Mac','stethoscope'],['doc','Show Log','doc.text'],['term','Terminal Dashboard','terminal'],['login','Open at Login','rectangle.portrait.and.arrow.right'],['power','Stop','power'],['play','Start, Resume','play.fill'],['pause','Pause','pause.fill'],['retry','Retry, Restart','arrow.clockwise'],['cube','Model','cube'],['tick','Loaded','checkmark'],['check','Ready','checkmark.circle.fill'],['hour','Waiting','hourglass'],['chip','Memory','memorychip'],['disk','Disk','internaldrive'],['gauge','Activity Monitor','gauge.with.dots.needle.67percent'],['plug','Port','powerplug'],['netx','No connection','wifi.slash'],['warn','Warning','exclamationmark.triangle.fill'],['xc','Cancel, Quit','xmark.circle.fill'],['trash','Delete','trash'],['folder','Finder','folder'],['book','Guide','book']];
+  document.getElementById('icons').innerHTML=icons.map(function(x){return '<div class="icn"><div class="sq"><svg><use href="#'+x[0]+'"/></svg></div><div><div class="nm">'+esc(x[1])+'</div><div class="sf">'+esc(x[2])+'</div></div></div>';}).join('');
+})();
+</script>
+
+</body>
+</html>
